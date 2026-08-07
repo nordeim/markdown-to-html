@@ -1,8 +1,8 @@
-# Skills Catalog — Master Project Architecture Document (PAD) v1.0
+# Skills Catalog — Master Project Architecture Document (PAD) v1.1
 
 **Classification:** Internal Engineering Reference
 **Status:** DEFINITIVE, PRODUCTION-LOCKED BLUEPRINT
-**Companion Documents:** `CLAUDE.md` (agent instructions), `AGENTS.md` (compact onboarding), `docs/markdown-html-pipeline_SKILL.md` (detailed skill reference)
+**Companion Documents:** `CLAUDE.md` (agent instructions), `AGENTS.md` (compact onboarding), `README.md` (project overview), `docs/markdown-html-pipeline_SKILL.md` (detailed skill reference)
 **Last Updated:** 2026-08-07
 **Audience:** Senior Engineers, Tech Leads, DevOps, and Onboarding Engineers
 **Rule:** Every architectural decision in this document traces to a specific rationale.
@@ -10,10 +10,16 @@
 
 ---
 
-#### Revision Block — v1.0
+#### Revision Block — v1.1
 
-- `[SR, INITIAL]` Initial PAD generation from complete codebase analysis. All sections verified against actual source code, test output, and build artifacts.
-- `[CA, VALIDATION]` All version numbers cross-checked against `package.json`. All test counts verified against actual test runs. All file paths confirmed to exist.
+- `[SR, UPDATE]` Full alignment audit against current codebase. Fixed 30+ discrepancies across 9 of 11 sections.
+- `[CA, VERSIONS]` Corrected Vite (`^8.2.1` → `^8.2.0`), TypeScript (`~6.0.3` → `~6.0.2`), Playwright (`1.62.1` → `^1.40.0`). Added missing packages (@vitest/coverage-v8, husky, lint-staged, prettier, markdownlint-cli2).
+- `[CA, TESTS]` Rebuilt test inventory: 9 files/42 tests → 21 files/126 tests. Added 10 missing integration test files. Fixed per-file test counts.
+- `[CA, STRUCTURE]` Added 17 missing files to directory structure (BackToTop, MobileNav, CopyButton, reading-time, config, enhance type, editorial template files, CI workflow, Husky, configs).
+- `[CA, METRICS]` Updated all size metrics (492→598 KB raw, 162→165 KB gzipped), file counts (29→39), line counts (923→2,474), and 11 file line counts in key files table.
+- `[CA, SECURITY]` Rewrote §8.4 CI/CD from "None configured" to actual 2-job pipeline description.
+- `[CA, ISSUES]` Removed 3 false known issues (README.md, MobileNav, CI/CD). Added 2 new items (editorial template, __dirname monitoring).
+- `[CA, HEADER]` Bumped version v1.0 → v1.1. Added README.md to companion documents.
 
 ---
 
@@ -50,7 +56,7 @@ This PAD is the single source of truth for the Skills Catalog markdown-to-web pi
 | Layer | Technology | Version | Key Rationale |
 |-------|------------|---------|---------------|
 | UI Runtime | React | `^19.2.8` | Latest stable; StrictMode + createRoot |
-| Build Tool | Vite | `^8.2.1` | Latest scaffold default; fast HMR, single-file plugin ecosystem |
+| Build Tool | Vite | `^8.2.0` | Latest scaffold default; fast HMR, single-file plugin ecosystem |
 | Build Plugin | @tailwindcss/vite | `^4.3.3` | **Must be ≥4.3.3 for Vite 8 peer compatibility** |
 | Build Plugin | @vitejs/plugin-react | `^6.0.4` | Required for JSX transform |
 | Build Plugin | vite-plugin-singlefile | `2.3.3` | **Must be ≥2.3.3 for Vite 8 peer compatibility** |
@@ -61,17 +67,22 @@ This PAD is the single source of truth for the Skills Catalog markdown-to-web pi
 | TOC Slugs | github-slugger | `2.0.0` | Default export class; matches rehype-slug output |
 | Class Utilities | clsx + tailwind-merge | `2.1.1` / `3.4.0` | Composable class merging without conflicts |
 | Icons | lucide-react | `1.29.0` | Tree-shaken SVG icons |
-| Language | TypeScript | `~6.0.3` | Strict mode with `noUncheckedIndexedAccess` |
-| Test Runner | vitest | `^4.1.10` | Unit + integration + bundle-size tests |
+| Language | TypeScript | `~6.0.2` | Strict mode with `noUncheckedIndexedAccess` |
+| Test Runner | vitest | `^4.1.10` | Unit + integration + bundle-size + coverage |
+| Coverage | @vitest/coverage-v8 | `^4.1.10` | v8 provider; enforces 80/75/80/80 thresholds |
 | DOM Testing | jsdom | `^30.0.1` | Peer of vitest; NOT bundled |
 | Testing Library | @testing-library/react | `^16.0.0` | Component rendering for integration tests |
 | jest-dom | @testing-library/jest-dom | `^6.0.0` | DOM matchers (`toBeInTheDocument`) |
-| E2E Runner | @playwright/test | `1.62.1` | Accessibility testing with axe-core |
-| A11y Scanner | @axe-core/playwright | `4.12.1` | WCAG 2.2 AA automated gate |
+| E2E Runner | @playwright/test | `^1.40.0` | Accessibility testing with axe-core |
+| A11y Scanner | @axe-core/playwright | `^4.12.1` | WCAG 2.2 AA automated gate |
 | Node Types | @types/node | `^26.1.2` | Required for `fs`, `path`, `zlib`, `process` in tests |
-| Lint | eslint | `9.39.5` | Flat config; zero-warning policy |
-| Lint Plugin | eslint-plugin-react-hooks | `5.2.0` | Hook misuse detection |
-| Lint Plugin | eslint-plugin-jsx-a11y | `6.10.2` | JSX accessibility rules |
+| Lint | eslint | `^9.39.5` | Flat config; zero-warning policy |
+| Lint Plugin | eslint-plugin-react-hooks | `^5.2.0` | Hook misuse detection |
+| Lint Plugin | eslint-plugin-jsx-a11y | `^6.10.2` | JSX accessibility rules |
+| Pre-commit | husky | `^9.0.0` | Runs lint-staged + typecheck on commit |
+| Staging | lint-staged | `^15.0.0` | ESLint + Prettier + markdownlint on staged files |
+| Format | prettier | `^3.0.0` | 100-char width, double quotes, trailing comma |
+| Markdown lint | markdownlint-cli2 | `^0.14.0` | Content quality gate |
 
 ### 1.3 Architecture Decision Records (ADRs)
 
@@ -155,7 +166,7 @@ This PAD is the single source of truth for the Skills Catalog markdown-to-web pi
 │  │  Plugin  │    │  Plugin  │    │  File    │    │  (JS/CSS inlined)│      │
 │  └──────────┘    └──────────┘    └──────────┘    └──────────────────┘      │
 │                                                                              │
-│  Source: 29 files, 923 lines → Output: 492 KB raw, 162 KB gzipped          │
+│  Source: 39 files, ~2,474 lines → Output: 598 KB raw, 165 KB gzipped       │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -197,17 +208,25 @@ This project uses a **pipeline architecture** with strict data flow:
 ```
 skills-catalog/
 ├── CLAUDE.md                          # Agent instructions (comprehensive)
-├── AGENTS.md                          # Compact agent onboarding (139 lines)
+├── AGENTS.md                          # Compact agent onboarding
+├── README.md                          # Project overview + quick start
 ├── index.html                         # HTML shell (<div id="root">)
-├── package.json                       # Dependencies + scripts
+├── package.json                       # Dependencies + scripts + lint-staged
 ├── package-lock.json                  # Locked dependency tree
 ├── vite.config.ts                     # Build: react + tailwind + singlefile
-├── tsconfig.json                      # Strict TypeScript config
-├── vitest.config.ts                   # Unit/integration test runner
+├── tsconfig.json                      # Strict TypeScript config (no baseUrl)
+├── vitest.config.ts                   # Unit/integration/coverage config
 ├── playwright.config.ts               # Accessibility test runner
+├── eslint.config.js                   # ESLint flat config (zero-warning)
+├── .prettierrc.json                   # Prettier: 100-char width, double quotes
+├── .markdownlint-cli2.jsonc           # Markdown lint rules
+├── .husky/pre-commit                  # Pre-commit: lint-staged + typecheck
+├── .github/workflows/ci.yml           # CI: quality + accessibility jobs
 ├── docs/
-│   ├── markdown-html-pipeline_SKILL.md  # Detailed skill reference (1292 lines)
-│   └── Project_Architecture_Document.md  # This file
+│   ├── Project_Architecture_Document.md  # This file
+│   ├── markdown-html-pipeline_SKILL.md  # Detailed skill reference
+│   ├── audit/                         # Audit + remediation logs
+│   └── status.md                      # Current project status
 ├── src/
 │   ├── main.tsx                       # Entry: StrictMode + ErrorBoundary + createRoot
 │   ├── App.tsx                        # ← Pipeline orchestrator (memoized state)
@@ -219,18 +238,21 @@ skills-catalog/
 │   ├── components/
 │   │   ├── MarkdownRenderer.tsx       # ← react-markdown renderer + full components map
 │   │                                    # code component routes inline code to Badge
-│   │                                    # table components render GFM tables
+│   │                                    # pre wrapped by CodeBlockWrapper
 │   │   ├── TableOfContents.tsx        # Recursive TOC with active-section styling
 │   │   ├── Badge.tsx                  # Tag-aware badge chip (5 accent steps)
 │   │   ├── ErrorBoundary.tsx          # Class component render error catcher
-│   │   ├── ErrorFallback.tsx          # Presentational fallback with reload button
+│   │   ├── ErrorFallback.tsx          # Presentational fallback with reload
 │   │   ├── SkipLink.tsx               # Accessible skip-to-content link
-│   │   └── ThemeToggle.tsx            # Light/dark/system toggle with localStorage
+│   │   ├── ThemeToggle.tsx            # Light/dark/system toggle (lucide + aria-live)
+│   │   ├── BackToTop.tsx              # Floating scroll-to-top button
+│   │   ├── MobileNav.tsx              # Mobile TOC drawer (dialog + focus trap)
+│   │   └── CopyButton.tsx             # Clipboard copy with execCommand fallback
 │   ├── content/
-│   │   └── document.md                # ← THE INPUT (323 lines, 198 skills, 10 categories)
+│   │   └── document.md                # ← THE INPUT (323 lines, 202 skills, 10 categories)
 │   ├── lib/
 │   │   ├── fence.ts                   # ← Fence-aware line scanner (CommonMark subset)
-│   │                                    # Shared by buildToc AND enhanceMarkdown
+│   │                                    # Shared by buildToc, enhance, reading-time
 │   │   ├── enhance.ts                 # ← Badge backtick-wrapping preprocessor
 │   │                                    # Regex: wraps **Tag:** value → **Tag:** `value`
 │   │   ├── toc.ts                     # ← H2–H4 outline extraction + slug generation
@@ -238,43 +260,62 @@ skills-catalog/
 │   │                                    # headingText() normalizes before slugging
 │   │   ├── tags.ts                    # ← Registry validation + collision detection
 │   │                                    # resolveBadge() returns first match
-│   │   └── frontmatter.ts             # ← YAML frontmatter parse + strip
-│   │                                    # BOM-safe (strips U+FEFF), CRLF-safe (normalizes \r\n)
+│   │   ├── frontmatter.ts             # ← YAML frontmatter parse + strip
+│   │                                    # BOM-safe (strips U+FEFF), CRLF-safe
+│   │   ├── reading-time.ts            # ← Prose-word reading-time estimator
+│   │                                    # 200 wpm, CJK-aware, strips fenced code
+│   │   └── config.ts                  # ← Optional MarkdownToWebConfig validator
 │   ├── templates/
 │   │   ├── active.ts                  # ← THE single edit point for template switching
-│   │   └── technical/
-│   │       ├── theme.css              # ← Two-layer token pattern (light + dark)
-│   │                                    # Layer 1: :root variables + @media flips
-│   │                                    # Layer 2: @theme inline bridge
-│   │       ├── components.tsx         # Component map overrides (h2, h3, h4, a)
-│   │       ├── layout.tsx             # Three-column shell (nav + content + outline)
-│   │       └── tags.json              # Status + Visibility registry
+│   │   ├── technical/                 # Three-column technical docs template (default)
+│   │   │   ├── theme.css              # ← Two-layer token pattern (light + dark + print)
+│   │   │   ├── components.tsx         # Component map overrides (h2, h3, h4, a)
+│   │   │   ├── layout.tsx             # Three-column shell + meta line + MobileNav
+│   │   │   └── tags.json              # Status + Visibility registry
+│   │   └── editorial/                 # Single-column long-form reading template
+│   │       ├── theme.css              # Warm cream-and-serif palette (light + dark + print)
+│   │       ├── components.tsx         # Larger headings, italic H3
+│   │       ├── layout.tsx             # Hero + single-column shell
+│   │       └── tags.json              # Severity + Confidence registry
 │   ├── types/
 │   │   ├── tag.ts                     # TagDefinition, TagRegistry, ResolvedBadge
 │   │   ├── toc.ts                     # TocItem
 │   │   ├── frontmatter.ts             # Frontmatter, ParsedDocument
 │   │   ├── template.ts                # TemplateConfig, TemplateLayoutProps, ComponentsMap
-│   │   └── config.ts                  # MarkdownToWebConfig
+│   │   ├── config.ts                  # MarkdownToWebConfig
+│   │   └── enhance.ts                 # EnhanceResult
 │   └── utils/
 │       ├── cn.ts                      # clsx + tailwind-merge
 │       └── theme-storage.ts           # localStorage with try/catch + in-memory fallback
 ├── tests/
 │   ├── setup.ts                       # @testing-library/jest-dom setup
-│   ├── unit/
+│   ├── unit/                         # 68 tests across 8 files
 │   │   ├── fence.test.ts              # 5 tests: fence delimiter tracking
-│   │   ├── enhance.test.ts            # 8 tests: badge backtick-wrapping
+│   │   ├── enhance.test.ts            # 10 tests: badge backtick-wrapping
 │   │   ├── toc.test.ts                # 9 tests: TOC nesting + slug dedup
 │   │   ├── frontmatter.test.ts        # 7 tests: YAML parse + strip
 │   │   ├── tags.test.ts               # 6 tests: registry validation + resolver
-│   │   └── slug-parity.test.ts        # 10 tests: github-slugger === rehype-slug
-│   ├── integration/
-│   │   └── markdown-rendering.test.tsx # 4 tests: full pipeline rendering
-│   ├── accessibility/
+│   │   ├── slug-parity.test.ts        # 9 tests: github-slugger === rehype-slug
+│   │   ├── reading-time.test.ts       # 8 tests: reading-time estimator
+│   │   └── config.test.ts             # 14 tests: config validator
+│   ├── integration/                   # 55 tests across 11 files
+│   │   ├── markdown-rendering.test.tsx # 4 tests: full pipeline rendering
+│   │   ├── code-block.test.tsx         # 5 tests: code block + copy button
+│   │   ├── images.test.tsx             # 5 tests: image rendering
+│   │   ├── task-lists.test.tsx         # 4 tests: GFM task lists
+│   │   ├── dev-warnings.test.tsx       # 1 test: enhance warnings
+│   │   ├── theme-toggle.test.tsx       # 9 tests: theme cycling + aria-live
+│   │   ├── error-boundary.test.tsx     # 4 tests: error catching
+│   │   ├── back-to-top.test.tsx        # 5 tests: scroll-to-top
+│   │   ├── mobile-nav.test.tsx         # 9 tests: mobile drawer
+│   │   ├── copy-button.test.tsx        # 4 tests: clipboard copy
+│   │   └── editorial-template.test.tsx # 5 tests: editorial template
+│   ├── accessibility/                 # 2 tests (Playwright + axe)
 │   │   └── axe.test.ts                # 2 tests: WCAG 2.2 AA (light + dark)
-│   └── performance/
+│   └── performance/                   # 1 test (bundle gate)
 │       └── bundle-size.test.ts        # 1 test: < 250 KB gzipped
 └── dist/
-    └── index.html                     # ← OUTPUT (492 KB raw, 162 KB gzipped)
+    └── index.html                     # ← OUTPUT (598 KB raw, 165 KB gzipped)
 ```
 
 ### 3.3 Critical Code Patterns
@@ -570,24 +611,36 @@ The project uses no external UI library (no Shadcn, Radix, MUI). All components 
 
 | Category | Files | Tests | Location | Framework |
 |----------|-------|-------|----------|-----------|
-| Unit | 6 | 35 | `tests/unit/` | vitest + jsdom |
-| Integration | 1 | 4 | `tests/integration/` | vitest + @testing-library/react |
+| Unit | 8 | 68 | `tests/unit/` | vitest + jsdom |
+| Integration | 11 | 55 | `tests/integration/` | vitest + @testing-library/react |
 | Accessibility | 1 | 2 | `tests/accessibility/` | Playwright + @axe-core/playwright |
 | Performance | 1 | 1 | `tests/performance/` | vitest |
-| **Total** | **9** | **42** | | |
+| **Total** | **21** | **126** | | |
 
 ### 7.2 Test Patterns
 
-**Unit tests** cover pure functions in `src/lib/`:
+**Unit tests** cover pure functions in `src/lib/` (68 tests across 8 files):
 - `fence.test.ts` — Fence delimiter tracking (5 tests)
-- `enhance.test.ts` — Badge backtick-wrapping (8 tests)
+- `enhance.test.ts` — Badge backtick-wrapping (10 tests)
 - `toc.test.ts` — TOC nesting + slug dedup (9 tests)
 - `frontmatter.test.ts` — YAML parse + strip (7 tests)
 - `tags.test.ts` — Registry validation + resolver (6 tests)
-- `slug-parity.test.ts` — github-slugger === rehype-slug (10 tests: 7 fixtures + 3 edge cases)
+- `slug-parity.test.ts` — github-slugger === rehype-slug (9 tests: 7 fixtures + 2 edge cases)
+- `reading-time.test.ts` — Reading-time estimator (8 tests)
+- `config.test.ts` — MarkdownToWebConfig validator (14 tests)
 
-**Integration tests** cover the full rendering pipeline:
-- `markdown-rendering.test.tsx` — Badges, external links, tables, malformed markdown (4 tests)
+**Integration tests** cover the full rendering pipeline (55 tests across 11 files):
+- `markdown-rendering.test.tsx` — Full pipeline rendering (4 tests)
+- `code-block.test.tsx` — Code block + copy button (5 tests)
+- `images.test.tsx` — Image rendering (5 tests)
+- `task-lists.test.tsx` — GFM task lists (4 tests)
+- `dev-warnings.test.tsx` — Enhance warnings (1 test)
+- `theme-toggle.test.tsx` — Theme cycling + aria-live (9 tests)
+- `error-boundary.test.tsx` — Error catching (4 tests)
+- `back-to-top.test.tsx` — Scroll-to-top (5 tests)
+- `mobile-nav.test.tsx` — Mobile drawer (9 tests)
+- `copy-button.test.tsx` — Clipboard copy (4 tests)
+- `editorial-template.test.tsx` — Editorial template (5 tests)
 
 **Accessibility tests** cover WCAG 2.2 AA compliance:
 - `axe.test.ts` — Light mode + dark mode (2 tests)
@@ -610,7 +663,7 @@ The project uses no external UI library (no Shadcn, Radix, MUI). All components 
 # 1. Typecheck (strict, zero errors)
 npx tsc --noEmit
 
-# 2. Unit + integration + bundle-size tests (42 tests)
+# 2. Unit + integration + bundle-size tests (124 tests)
 npm run test
 
 # 3. Accessibility tests (2 tests, WCAG 2.2 AA)
@@ -620,7 +673,7 @@ npm run a11y
 npm run build
 
 # 5. Verify output
-ls -lh dist/index.html  # Should exist, ~492 KB
+ls -lh dist/index.html  # Should exist, ~598 KB
 ```
 
 ---
@@ -637,12 +690,11 @@ npm run build
 
 | Metric | Value |
 |--------|-------|
-| Raw size | 492 KB |
-| Gzipped size | 162 KB |
+| Raw size | 598 KB |
+| Gzipped size | 165 KB |
 | Bundle budget | 250 KB gzipped |
-| Margin | 87 KB under budget |
-| Build time | ~400ms |
-| gzip ratio | 3.04:1 |
+| Margin | 85 KB under budget |
+| gzip ratio | 3.62:1 |
 
 **Build pipeline:**
 1. Vite transforms TypeScript/TSX via esbuild
@@ -664,7 +716,27 @@ npm run build
 
 ### 8.4 CI/CD Pipeline
 
-**None configured.** The project has no `.github/workflows/` directory. The pre-deploy checklist (§7.4) is designed to be run locally or wired into CI as needed.
+Configured in `.github/workflows/ci.yml` with two jobs:
+
+**Job 1 — `quality`** (7 steps):
+1. Typecheck (`tsc --noEmit`)
+2. Lint (ESLint, zero-warning)
+3. Format (Prettier check)
+4. Markdown (markdownlint-cli2)
+5. Test with coverage (vitest + v8 coverage)
+6. Build (`vite build`)
+7. Bundle size verification (< 250 KB gzipped)
+
+Uploads coverage + dist artifacts.
+
+**Job 2 — `accessibility`** (depends on `quality`):
+1. Build for a11y test
+2. Install Playwright chromium `--with-deps`
+3. Run `npm run a11y`
+
+Uploads Playwright report.
+
+**Triggers:** Push and PR to `main`/`master`. Concurrency cancels in-progress runs.
 
 **Deployment targets:** Any static host — GitHub Pages, Netlify, Vercel, S3 + Cloudflare, nginx. The single-file output requires no server-side configuration.
 
@@ -685,9 +757,10 @@ npx playwright install chromium
 
 # 3. Verify setup
 npm run typecheck    # Should pass with zero errors
-npm run test         # Should pass 42 tests
-npm run a11y         # Should pass 2 tests
-npm run build        # Should produce dist/index.html
+npm run lint         # Should pass with zero warnings
+npm run test         # Should pass 124 vitest tests
+npm run a11y         # Should pass 2 Playwright tests
+npm run build        # Should produce dist/index.html (~598 KB)
 ```
 
 ### 9.2 Common Commands
@@ -697,12 +770,17 @@ npm run build        # Should produce dist/index.html
 | `npm run dev` | root | Start Vite dev server |
 | `npm run build` | root | Production build → `dist/index.html` |
 | `npm run preview` | root | Serve `dist/` on :4173 |
-| `npm run typecheck` | root | `tsc --noEmit` (strict) |
+| `npm run typecheck` | root | `tsc --noEmit` (strict, noUnusedLocals) |
+| `npm run lint` | root | ESLint (flat config, zero-warning policy) |
+| `npm run lint:format` | root | Prettier check |
+| `npm run lint:markdown` | root | markdownlint-cli2 |
 | `npm run test` | root | All vitest tests (unit + integration + bundle-size) |
-| `npm run test:unit` | root | Unit tests only (35 tests) |
-| `npm run test:integration` | root | Integration tests only (4 tests) |
-| `npm run test:bundle-size` | root | Bundle < 250 KB gate (1 test) |
+| `npm run test:unit` | root | Unit tests only (68 tests across 8 files) |
+| `npm run test:integration` | root | Integration tests only (55 tests across 11 files) |
+| `npm run test:coverage` | root | Vitest with coverage (enforces 80/75/80/80) |
+| `npm run test:bundle-size` | root | Bundle < 250 KB gzipped gate (1 test) |
 | `npm run a11y` | root | Accessibility tests via Playwright (2 tests) |
+| `npm run prepare` | root | Install Husky pre-commit hook |
 
 ### 9.3 Code Style Rules
 
@@ -729,13 +807,12 @@ npm run build        # Should produce dist/index.html
 
 | Priority | Issue | Impact | Status |
 |----------|-------|--------|--------|
-| MEDIUM | No CI/CD pipeline | No automated testing on push/PR | Open — can be added with GitHub Actions |
-| MEDIUM | No README.md | No project description for visitors | Open — should be created |
-| LOW | No mobile drawer TOC | TOC only visible on `lg:` screens and above | Open — mobile users must scroll to navigate |
 | LOW | No syntax highlighting for code blocks | Code blocks render as plain `<pre>` | Open — `rehype-highlight` is opt-in, not wired |
 | LOW | Google Fonts CDN dependency | `file://` viewing fails to load fonts | Documented — offline font build not implemented |
 | INFO | Badge annotations absent from content | Badge system is unused (0 annotations in content) | By design — the catalog is pure reference material |
 | INFO | No JSDoc on all public functions | Some lib functions lack full JSDoc | Low — functions are private and tested |
+| INFO | Editorial template not exposed in UI | No runtime switch between technical/editorial | By design — template is a build-time choice via `active.ts` |
+| INFO | `__dirname` deprecation in Vite 8 | Potential future migration needed | Monitored — `import.meta.dirname` already used in configs |
 
 ---
 
@@ -743,25 +820,34 @@ npm run build        # Should produce dist/index.html
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `src/App.tsx` | 76 | Pipeline orchestrator — memoized state, IntersectionObserver |
+| `src/App.tsx` | 109 | Pipeline orchestrator — memoized state, IntersectionObserver |
 | `src/main.tsx` | 13 | Entry point — StrictMode + ErrorBoundary + createRoot |
-| `src/components/MarkdownRenderer.tsx` | 96 | react-markdown renderer + full components map |
-| `src/templates/technical/theme.css` | 135 | Two-layer token pattern (light + dark) |
-| `src/templates/technical/layout.tsx` | 89 | Three-column layout shell |
+| `src/components/MarkdownRenderer.tsx` | 159 | react-markdown renderer + full components map + CodeBlockWrapper |
+| `src/templates/technical/theme.css` | 219 | Two-layer token pattern (light + dark + print) |
+| `src/templates/technical/layout.tsx` | 117 | Three-column layout shell + meta line + MobileNav + BackToTop |
 | `src/components/TableOfContents.tsx` | 70 | Recursive TOC with active-section styling |
-| `src/lib/toc.ts` | 48 | H2–H4 outline extraction + slug generation |
-| `src/lib/tags.ts` | 58 | Registry validation + collision detection + resolver |
-| `src/lib/fence.ts` | 44 | Fence-aware line scanner (CommonMark subset) |
-| `src/lib/enhance.ts` | 38 | Badge backtick-wrapping preprocessor |
-| `src/lib/frontmatter.ts` | 31 | YAML frontmatter parse + strip |
+| `src/components/BackToTop.tsx` | 67 | Floating scroll-to-top button (respects reduced motion) |
+| `src/components/MobileNav.tsx` | 126 | Mobile TOC drawer (dialog + focus trap + scroll lock) |
+| `src/components/ThemeToggle.tsx` | 123 | Light/dark/system toggle (lucide + aria-live + matchMedia) |
+| `src/components/CopyButton.tsx` | 89 | Clipboard copy with execCommand fallback |
+| `src/components/SkipLink.tsx` | 10 | Accessible skip-to-content |
 | `src/components/Badge.tsx` | 32 | Tag-aware badge chip (5 accent steps) |
-| `src/components/ErrorBoundary.tsx` | 41 | Class component render error catcher |
-| `src/components/ErrorFallback.tsx` | 30 | Presentational fallback UI with reload |
-| `src/components/ThemeToggle.tsx` | 43 | Light/dark/system toggle with localStorage |
-| `src/content/document.md` | 323 | The input markdown (198 skills, 10 categories) |
+| `src/components/ErrorBoundary.tsx` | 50 | Class component render error catcher |
+| `src/components/ErrorFallback.tsx` | 28 | Presentational fallback UI with reload |
+| `src/lib/toc.ts` | 44 | H2–H4 outline extraction + slug generation |
+| `src/lib/tags.ts` | 53 | Registry validation + collision detection + resolver |
+| `src/lib/fence.ts` | 44 | Fence-aware line scanner (CommonMark subset) |
+| `src/lib/enhance.ts` | 48 | Badge backtick-wrapping preprocessor |
+| `src/lib/frontmatter.ts` | 31 | YAML frontmatter parse + strip |
+| `src/lib/reading-time.ts` | 87 | Prose-word reading-time estimator (200 wpm, CJK-aware) |
+| `src/lib/config.ts` | 129 | Optional MarkdownToWebConfig validator |
+| `src/content/document.md` | 323 | The input markdown (202 skills, 10 categories) |
 | `src/templates/active.ts` | 14 | Template switching (single edit point) |
-| `src/types/template.ts` | 51 | TemplateConfig, TemplateLayoutProps, ComponentsMap |
-| `tests/unit/slug-parity.test.ts` | ~30 | Most critical test — slug parity verification |
+| `src/types/template.ts` | 54 | TemplateConfig, TemplateLayoutProps, ComponentsMap |
+| `src/utils/cn.ts` | 7 | clsx + tailwind-merge |
+| `src/utils/theme-storage.ts` | 18 | localStorage with try/catch + in-memory fallback |
+| `tests/unit/slug-parity.test.ts` | 34 | Most critical test — slug parity verification |
+| `tests/integration/theme-toggle.test.tsx` | ~45 | Largest integration suite (9 tests) |
 
 ---
 
