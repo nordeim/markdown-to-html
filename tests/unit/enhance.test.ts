@@ -4,12 +4,14 @@ import type { TagRegistry } from "@/types/tag";
 
 const REGISTRY: TagRegistry = {
   Severity: { name: "Severity", values: { critical: { accent: 1 }, low: { accent: 4 } } },
-  Status:   { name: "Status",   values: { done: { accent: 4 } } },
+  Status: { name: "Status", values: { done: { accent: 4 } } },
 };
 
 describe("enhanceMarkdown", () => {
   it("wraps registered values in backticks", () => {
-    expect(enhanceMarkdown("- **Severity:** critical", REGISTRY).enhanced).toBe("- **Severity:** `critical`");
+    expect(enhanceMarkdown("- **Severity:** critical", REGISTRY).enhanced).toBe(
+      "- **Severity:** `critical`",
+    );
   });
   it("accepts *, +, and ordered bullets", () => {
     for (const bullet of ["* ", "+ ", "1. ", "2) "]) {
@@ -17,7 +19,9 @@ describe("enhanceMarkdown", () => {
     }
   });
   it("matches tags case-insensitively, outputs canonical case", () => {
-    expect(enhanceMarkdown("- **severity:** critical", REGISTRY).enhanced).toBe("- **Severity:** `critical`");
+    expect(enhanceMarkdown("- **severity:** critical", REGISTRY).enhanced).toBe(
+      "- **Severity:** `critical`",
+    );
   });
   it("leaves fenced badge lines untouched", () => {
     const md = "```\n- **Severity:** critical\n```";
@@ -42,5 +46,16 @@ describe("enhanceMarkdown", () => {
     expect(enhanced).toContain("`critical`");
     expect(enhanced).toContain("`done`");
     expect(enhanced).toContain("`low`");
+  });
+
+  it("matches badges with up to 3 leading spaces (CommonMark indent rule)", () => {
+    expect(enhanceMarkdown("   - **Severity:** critical", REGISTRY).enhanced).toContain(
+      "`critical`",
+    );
+  });
+
+  it("does NOT match badges with 4+ leading spaces (exceeds CommonMark indent)", () => {
+    const md = "    - **Severity:** critical";
+    expect(enhanceMarkdown(md, REGISTRY).enhanced).toBe(md);
   });
 });

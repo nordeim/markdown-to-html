@@ -18,11 +18,15 @@ describe("registry validation", () => {
       Priority: { name: "Priority", values: { draft: { accent: 2 } } },
     };
     const errors = validateRegistry(bad);
-    expect(errors.some((e) => e.includes("collision") && e.includes("Status") && e.includes("Priority"))).toBe(true);
+    expect(
+      errors.some((e) => e.includes("collision") && e.includes("Status") && e.includes("Priority")),
+    ).toBe(true);
     expect(() => loadRegistry(bad)).toThrow(/collision/);
   });
   it("rejects uppercase-registered values and out-of-range accents", () => {
-    const bad: TagRegistry = { S: { name: "S", values: { Critical: { accent: 1 }, ok: { accent: 9 as 1 | 2 | 3 | 4 | 5 } } } };
+    const bad: TagRegistry = {
+      S: { name: "S", values: { Critical: { accent: 1 }, ok: { accent: 9 as 1 | 2 | 3 | 4 | 5 } } },
+    };
     expect(validateRegistry(bad)).toHaveLength(2);
   });
 });

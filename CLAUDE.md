@@ -4,9 +4,11 @@ IMPORTANT: File is read fresh for every conversation. Be brief and practical.
 
 # Skills Catalog — Markdown-to-Web Pipeline
 
-A zero-backend React application that renders a Markdown document (`src/content/document.md`) as a polished, navigable, single-file web page. The build produces one self-contained `dist/index.html` (492 KB raw, 162 KB gzipped) with JS/CSS inlined — deployable to any static host.
+A zero-backend React application that renders a Markdown document (`src/content/document.md`) as a polished, navigable, single-file web page. The build produces one self-contained `dist/index.html` (598 KB raw, 171 KB gzipped) with JS/CSS inlined — deployable to any static host.
 
-**Tech Stack:** React 19 + Vite 8 + Tailwind CSS v4 (CSS-first `@theme`) + react-markdown + remark/rehype ecosystem + Playwright (accessibility)
+**Tech Stack:** React 19 + Vite 8 + Tailwind CSS v4 (CSS-first `@theme`) + react-markdown + remark/rehype ecosystem + lucide-react (icons) + Playwright (accessibility)
+
+**Version:** 1.1.0 (2026-08-07) — remediated. See `docs/audit/REMEDIATION_LOG.md` for the full change log.
 
 ## Core Identity & Purpose
 
@@ -84,26 +86,30 @@ npx playwright install chromium  # Required before first a11y test
 
 ### Build Commands
 
-| Command | Purpose |
-|---------|---------|
-| `npm run dev` | Start development server (Vite) |
-| `npm run build` | Production build → `dist/index.html` |
-| `npm run preview` | Serve `dist/` on :4173 |
-| `npm run typecheck` | `tsc --noEmit` (strict) |
-| `npm run test` | All vitest tests (unit + integration + bundle-size) |
-| `npm run test:unit` | Unit tests only (35 tests) |
-| `npm run test:integration` | Integration tests only (4 tests) |
-| `npm run test:bundle-size` | Bundle < 250 KB gzipped gate (1 test) |
-| `npm run a11y` | Accessibility tests (Playwright + axe, 2 tests) |
+| Command                    | Purpose                                             |
+| -------------------------- | --------------------------------------------------- |
+| `npm run dev`              | Start development server (Vite)                     |
+| `npm run build`            | Production build → `dist/index.html`                |
+| `npm run preview`          | Serve `dist/` on :4173                              |
+| `npm run typecheck`        | `tsc --noEmit` (strict)                             |
+| `npm run lint`             | ESLint (flat config, zero-warning policy)           |
+| `npm run lint:format`      | Prettier check                                      |
+| `npm run lint:markdown`    | markdownlint-cli2                                   |
+| `npm run test`             | All vitest tests (unit + integration + bundle-size) |
+| `npm run test:unit`        | Unit tests only (68 tests across 8 files)           |
+| `npm run test:integration` | Integration tests only (55 tests across 10 files)   |
+| `npm run test:coverage`    | Vitest with coverage (enforces 80/75/80/80)         |
+| `npm run test:bundle-size` | Bundle < 250 KB gzipped gate (1 test)               |
+| `npm run a11y`             | Accessibility tests (Playwright + axe, 2 tests)     |
 
 ### Test Runner Split
 
 **Two different test runners. Do not confuse them.**
 
-| Runner | Command | What it runs |
-|--------|---------|-------------|
-| vitest | `npm run test` | `tests/unit/`, `tests/integration/`, `tests/performance/` |
-| Playwright | `npm run a11y` | `tests/accessibility/` |
+| Runner     | Command        | What it runs                                              |
+| ---------- | -------------- | --------------------------------------------------------- |
+| vitest     | `npm run test` | `tests/unit/`, `tests/integration/`, `tests/performance/` |
+| Playwright | `npm run a11y` | `tests/accessibility/`                                    |
 
 - `tests/accessibility/**` is **excluded from vitest** — it cannot run there.
 - Playwright browsers must be installed first: `npx playwright install chromium`.
@@ -119,10 +125,11 @@ npx playwright test tests/accessibility/axe.test.ts  # Single a11y test file
 
 ### Test Pyramid
 
-- **Unit Tests (70%)**: Pure functions in `lib/` — fence scanner, enhance preprocessor, TOC extraction, frontmatter parsing, tag registry, slug parity. 35 tests across 6 files.
-- **Integration Tests (20%)**: Full pipeline rendering with `react-markdown` — badges, external links, tables, malformed markdown. 4 tests in 1 file.
-- **Accessibility (10%)**: axe-core via Playwright — WCAG 2.2 AA in light and dark modes. 2 tests in 1 file.
+- **Unit Tests (~55%)**: Pure functions in `lib/` — fence scanner, enhance preprocessor, TOC extraction, frontmatter parsing, tag registry, slug parity, config validator, reading-time estimator. 68 tests across 8 files.
+- **Integration Tests (~45%)**: Full pipeline rendering with `react-markdown` — badges, external links, tables, malformed markdown, code blocks, images, task lists, theme toggle, error boundary, back-to-top, mobile nav, copy button, editorial template, dev warnings. 55 tests across 10 files.
+- **Accessibility**: axe-core via Playwright — WCAG 2.2 AA in light and dark modes. 2 tests in 1 file.
 - **Performance**: Bundle size gate (< 250 KB gzipped). 1 test.
+- **Total**: 124 vitest tests + 2 Playwright tests = 126.
 
 ### Test Standards
 
@@ -145,19 +152,47 @@ npx playwright test tests/accessibility/axe.test.ts  # Single a11y test file
 ```bash
 npm run lint              # ESLint (flat config, zero-warning policy)
 npm run lint:format       # Prettier check
+npm run lint:markdown     # markdownlint-cli2
 ```
 
-- ESLint 9 with flat config.
-- `typescript-eslint` for TypeScript-specific rules.
+- ESLint 9 with flat config (`eslint.config.js`).
+- `typescript-eslint` recommended rules for TypeScript-specific checks.
 - `eslint-plugin-react-hooks` catches hook misuse.
 - `eslint-plugin-jsx-a11y` catches accessibility anti-patterns.
+- `@typescript-eslint/consistent-type-imports` enforces `import type`.
+- `@typescript-eslint/no-explicit-any` blocks `any` (use `unknown`).
 - Zero-warning policy: `--max-warnings 0`.
+- Prettier: 100-char print width, double quotes, trailing comma all, semi true (`.prettierrc.json`).
+- markdownlint: MD022/MD031/MD032/MD037/MD038/MD039/MD047/MD050 enabled; MD013/MD033/MD034/MD041/MD036/MD040/MD046 disabled (`.markdownlint-cli2.jsonc`).
 
-### Pre-commit (if configured)
+### Pre-commit Hook (configured)
+
+The `.husky/pre-commit` hook runs `npx lint-staged` (ESLint --fix + Prettier --write + markdownlint --fix on staged files) followed by `npm run typecheck`. A failure blocks the commit. Per project policy, no guardrail is weakened to make a commit pass — fix the cause, not the symptom.
 
 ```bash
-npx husky install         # One-time setup
+npx husky install         # One-time setup (auto-runs via `npm run prepare`)
 ```
+
+The `lint-staged` config lives in `package.json`:
+
+```json
+{
+  "lint-staged": {
+    "*.{ts,tsx}": ["eslint --fix", "prettier --write"],
+    "*.{json,css}": ["prettier --write"],
+    "*.md": ["prettier --write", "markdownlint-cli2 --fix"]
+  }
+}
+```
+
+### CI Workflow (configured)
+
+`.github/workflows/ci.yml` defines two jobs that run on every push and PR to `main`/`master`:
+
+- **quality**: typecheck → lint → lint:format → lint:markdown → test:coverage → build → test:bundle-size. Uploads coverage + dist artifacts.
+- **accessibility**: build → `npx playwright install chromium --with-deps` → `npm run a11y`. Uploads Playwright report.
+
+Concurrency cancels in-progress runs when a new commit is pushed.
 
 ## Architecture
 
@@ -230,6 +265,7 @@ Both `buildToc` and `enhanceMarkdown` consume `scanLines()` from `src/lib/fence.
 ### Template Switching
 
 Edit **only** `src/templates/active.ts`:
+
 - Change the three import paths
 - Change `TEMPLATE_NAME`
 
@@ -238,10 +274,12 @@ The template provides: theme CSS (side-effect import), component map overrides, 
 ### Dark Mode (Two-Layer Token Pattern)
 
 **Layer 1** — runtime variables in `:root`, flipped by `@media (prefers-color-scheme: dark)` and `[data-theme="dark"]`:
+
 - System dark: `:root:not([data-theme="light"]) { ... }`
 - Manual override: `[data-theme="dark"] { ... }`
 
 **Layer 2** — `@theme inline` bridges variables into Tailwind utilities:
+
 ```css
 @theme inline {
   --color-bg: var(--bg);
@@ -252,82 +290,95 @@ The template provides: theme CSS (side-effect import), component map overrides, 
 
 ### Design Token Reference (Technical Template)
 
-| Token | Light | Dark | Usage |
-|-------|-------|------|-------|
-| `--bg` | `#ffffff` | `#0f172a` | Page background |
-| `--text` | `#0f172a` | `#f8fafc` | Headings |
-| `--text-secondary` | `#475569` | `#cbd5e1` | Body text |
-| `--text-tertiary` | `#475569` | `#94a3b8` | Labels |
-| `--border` | `#e2e8f0` | `#334155` | Borders |
-| `--accent` | `#2563eb` | `#60a5fa` | Links, focus rings |
-| `--accent-1` | `#dc2626` | `#f87171` | Badge: critical |
-| `--accent-2` | `#f59e0b` | `#fbbf24` | Badge: warning |
-| `--accent-3` | `#2563eb` | `#60a5fa` | Badge: info |
-| `--accent-4` | `#10b981` | `#34d399` | Badge: success |
-| `--accent-5` | `#8b5cf6` | `#a78bfa` | Badge: neutral |
+| Token              | Light     | Dark      | Usage              |
+| ------------------ | --------- | --------- | ------------------ |
+| `--bg`             | `#ffffff` | `#0f172a` | Page background    |
+| `--text`           | `#0f172a` | `#f8fafc` | Headings           |
+| `--text-secondary` | `#475569` | `#cbd5e1` | Body text          |
+| `--text-tertiary`  | `#475569` | `#94a3b8` | Labels             |
+| `--border`         | `#e2e8f0` | `#334155` | Borders            |
+| `--accent`         | `#2563eb` | `#60a5fa` | Links, focus rings |
+| `--accent-1`       | `#dc2626` | `#f87171` | Badge: critical    |
+| `--accent-2`       | `#f59e0b` | `#fbbf24` | Badge: warning     |
+| `--accent-3`       | `#2563eb` | `#60a5fa` | Badge: info        |
+| `--accent-4`       | `#10b981` | `#34d399` | Badge: success     |
+| `--accent-5`       | `#8b5cf6` | `#a78bfa` | Badge: neutral     |
 
 All text tokens meet WCAG 2.2 AA (≥ 4.5:1 contrast). Verified by axe-core.
 
 ### Z-Index Layer Map
 
-| z-index | Element | File |
-|---------|---------|------|
-| `z-50` | Skip-to-content link (focused) | `SkipLink.tsx` |
-| `z-40` | Sticky header | `layout.tsx` |
+| z-index | Element                        | File           |
+| ------- | ------------------------------ | -------------- |
+| `z-50`  | Skip-to-content link (focused) | `SkipLink.tsx` |
+| `z-40`  | Sticky header                  | `layout.tsx`   |
 
 ### Component Architecture
 
 ```
 src/
-├── App.tsx                          # Layout assembly + memoized pipeline state
+├── App.tsx                          # Layout assembly + memoized pipeline state + active-section observer + dev warnings
 ├── main.tsx                         # Entry: StrictMode + ErrorBoundary + createRoot
 ├── index.css                        # Fonts @import + @import "tailwindcss"
-├── vite-env.d.ts                    # Vite client types + *.md?raw + *.css declarations
+├── vite-env.d.ts                    # Vite client types + *.md?raw declaration
 ├── components/
-│   ├── MarkdownRenderer.tsx         # react-markdown renderer + full components map
-│   ├── TableOfContents.tsx          # Recursive TOC with active-section styling
+│   ├── MarkdownRenderer.tsx         # react-markdown renderer + full components map + CodeBlockWrapper
+│   ├── TableOfContents.tsx          # Recursive TOC with active-section styling + aria-label
 │   ├── Badge.tsx                    # Tag-aware badge chip (5 accent steps)
-│   ├── ErrorBoundary.tsx            # Class component render error catcher
+│   ├── ErrorBoundary.tsx            # Class component render error catcher (stores errorInfo)
 │   ├── ErrorFallback.tsx            # Presentational fallback UI with reload
 │   ├── SkipLink.tsx                 # Accessible skip-to-content
-│   └── ThemeToggle.tsx              # Light/dark/system toggle with localStorage
+│   ├── ThemeToggle.tsx              # Light/dark/system toggle (lucide icons + aria-live + matchMedia subscription)
+│   ├── BackToTop.tsx                # Floating scroll-to-top button (respects reduced motion)
+│   ├── MobileNav.tsx                # Mobile TOC drawer (dialog + focus trap + Escape + body scroll lock)
+│   └── CopyButton.tsx               # Clipboard copy with execCommand fallback
 ├── content/
 │   └── document.md                  # Input markdown (323 lines, 0 badge annotations)
 ├── templates/
 │   ├── active.ts                    # THE single edit point for template switching
-│   └── technical/
-│       ├── theme.css                # Two-layer token pattern (light + dark)
-│       ├── components.tsx           # Component map overrides (h2, h3, h4, a)
-│       ├── layout.tsx               # Three-column shell (nav + content + outline)
-│       └── tags.json                # Status + Visibility registry
+│   ├── technical/                   # Three-column technical docs template (default)
+│   │   ├── theme.css                # Two-layer token pattern (light + dark + print)
+│   │   ├── components.tsx           # Component map overrides (h2, h3, h4, a)
+│   │   ├── layout.tsx               # Three-column shell + meta line + MobileNav + BackToTop
+│   │   └── tags.json                # Status + Visibility registry
+│   └── editorial/                   # Single-column long-form reading template
+│       ├── theme.css                # Warm cream-and-serif palette (light + dark + print)
+│       ├── components.tsx           # Larger headings, italic H3
+│       ├── layout.tsx               # Hero + single-column shell
+│       └── tags.json                # Severity + Confidence registry
 ├── lib/
 │   ├── fence.ts                     # Fence-aware line scanner (CommonMark subset)
-│   ├── enhance.ts                   # Tag-aware regex preprocessor (backtick-wrapping)
+│   ├── enhance.ts                   # Tag-aware regex preprocessor (backtick-wrapping, 3-space indent)
 │   ├── toc.ts                       # H2–H4 outline extraction with slug reservation
 │   ├── tags.ts                      # Registry validation + collision detection + resolver
-│   └── frontmatter.ts               # YAML frontmatter parse + strip (BOM-safe, CRLF-safe)
+│   ├── frontmatter.ts               # YAML frontmatter parse + strip (BOM-safe, CRLF-safe)
+│   ├── reading-time.ts              # Prose-word reading-time estimator (200 wpm, CJK-aware)
+│   └── config.ts                    # Optional MarkdownToWebConfig validator
 ├── types/
-│   ├── tag.ts                       # TagDefinition, TagRegistry, ResolvedBadge
-│   ├── toc.ts                       # TocItem
+│   ├── tag.ts                       # TagDefinition, TagRegistry, ResolvedBadge (canonical home)
+│   ├── toc.ts                       # TocItem (canonical home)
 │   ├── frontmatter.ts               # Frontmatter, ParsedDocument
 │   ├── template.ts                  # TemplateConfig, TemplateLayoutProps, ComponentsMap
-│   └── config.ts                    # MarkdownToWebConfig
+│   ├── config.ts                    # MarkdownToWebConfig
+│   └── enhance.ts                   # EnhanceResult
 └── utils/
     ├── cn.ts                        # clsx + tailwind-merge
     └── theme-storage.ts             # localStorage with try/catch + in-memory fallback
 ```
 
-**File counts:** 29 source files (923 lines), 10 test files (347 lines), 49 total tests.
+**File counts:** 38 source files, 20 test files, 124 vitest tests + 2 Playwright tests = 126 total.
 
 ## Git & Version Control
 
 ### Commit Standards
+
 - Follow Conventional Commits format (`feat:`, `fix:`, `docs:`, `test:`, `refactor:`)
 - Atomic commits (one logical change per commit)
 
 ## Error Handling & Debugging
 
 ### Error Handling Approach
+
 - **Build-time:** `loadRegistry()` throws if tag values collide — fails fast at startup.
 - **Render-time:** `ErrorBoundary` catches React render errors, shows `ErrorFallback` with reload button.
 - **Storage:** `theme-storage.ts` wraps `localStorage` in try/catch with in-memory fallback for sandboxed contexts.
@@ -335,20 +386,20 @@ src/
 
 ### Debugging Guide
 
-| Symptom | Cause | Fix |
-|---------|-------|-----|
-| `Cannot find package 'jsdom'` | jsdom not installed | `npm install -D jsdom` |
-| `Option baseUrl is deprecated` | TS 6 deprecation | Remove `baseUrl` from tsconfig; use `paths` |
-| `peer vite@"^5\|^6\|^7"` conflict | Plugin predates Vite 8 | Use `@tailwindcss/vite@4.3.3+`, `vite-plugin-singlefile@2.3.3+` |
-| `Executable doesn't exist` (Playwright) | Browsers not installed | `npx playwright install chromium` |
-| Badge renders as plain `<code>` | Markdown not run through `enhanceMarkdown` | Pipeline: `enhanceMarkdown` → `MarkdownRenderer` |
-| `getByLabelText` finds wrong badge | Value collision across tags | Ensure unique values in registry |
-| Slug parity test fails on whitespace | `buildToc` trims heading text | Compare against `slugger.slug(text.trim())` |
-| `color-contrast` AA violation | Text token too light for background | Darken token (see Design Token Reference) |
-| `Property 'env' does not exist on ImportMeta` | Missing Vite client types | Add `/// <reference types="vite/client" />` |
-| `Cannot find name 'fs'/'path'/'process'` | Missing `@types/node` | `npm install -D @types/node` + add to tsconfig `types` |
-| `calling test() from async test.describe()` | Playwright tests under vitest | Run `npx playwright test` instead |
-| Build exceeds 250 KB gzipped | Large markdown or un-tree-shaken icons | Subset lucide-react imports |
+| Symptom                                       | Cause                                      | Fix                                                             |
+| --------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------- |
+| `Cannot find package 'jsdom'`                 | jsdom not installed                        | `npm install -D jsdom`                                          |
+| `Option baseUrl is deprecated`                | TS 6 deprecation                           | Remove `baseUrl` from tsconfig; use `paths`                     |
+| `peer vite@"^5\|^6\|^7"` conflict             | Plugin predates Vite 8                     | Use `@tailwindcss/vite@4.3.3+`, `vite-plugin-singlefile@2.3.3+` |
+| `Executable doesn't exist` (Playwright)       | Browsers not installed                     | `npx playwright install chromium`                               |
+| Badge renders as plain `<code>`               | Markdown not run through `enhanceMarkdown` | Pipeline: `enhanceMarkdown` → `MarkdownRenderer`                |
+| `getByLabelText` finds wrong badge            | Value collision across tags                | Ensure unique values in registry                                |
+| Slug parity test fails on whitespace          | `buildToc` trims heading text              | Compare against `slugger.slug(text.trim())`                     |
+| `color-contrast` AA violation                 | Text token too light for background        | Darken token (see Design Token Reference)                       |
+| `Property 'env' does not exist on ImportMeta` | Missing Vite client types                  | Add `/// <reference types="vite/client" />`                     |
+| `Cannot find name 'fs'/'path'/'process'`      | Missing `@types/node`                      | `npm install -D @types/node` + add to tsconfig `types`          |
+| `calling test() from async test.describe()`   | Playwright tests under vitest              | Run `npx playwright test` instead                               |
+| Build exceeds 250 KB gzipped                  | Large markdown or un-tree-shaken icons     | Subset lucide-react imports                                     |
 
 ## Project-Specific Standards
 
@@ -385,11 +436,23 @@ src/
 ## Success Metrics
 
 You are successful when:
-- All 49 tests pass (35 unit, 4 integration, 2 accessibility, 1 performance).
-- `npx tsc --noEmit` produces zero errors.
+
+- All 124 vitest tests pass (68 unit, 55 integration, 1 performance).
+- Both Playwright a11y tests pass (light + dark mode).
+- `npm run typecheck` produces zero errors.
+- `npm run lint` produces zero warnings.
+- `npm run lint:format` reports "All matched files use Prettier code style!".
+- `npm run lint:markdown` reports "0 error(s)".
+- `npm run test:coverage` meets thresholds (lines/functions/statements 80%, branches 75%).
 - `npm run build` produces a single-file `dist/index.html` under 250 KB gzipped.
-- `npx playwright test` reports zero WCAG 2.2 AA violations in both light and dark modes.
-- The rendered page renders all markdown content (headings, tables, links, code blocks) correctly.
+- `npm run a11y` reports zero WCAG 2.2 AA violations in both light and dark modes.
+- The rendered page renders all markdown content (headings, tables, links, code blocks, images, task lists) correctly.
+- The mobile TOC drawer opens/closes correctly on screens < `lg`.
+- The back-to-top button appears after scrolling past one viewport.
+- Code-block copy buttons copy text to the clipboard.
+- Reading time displays in the layout meta line.
+- Print stylesheet hides chrome and forces light-mode colors.
+- Theme toggle cycles light → dark → system and persists across reload.
 
 ## Anti-Patterns to Avoid
 

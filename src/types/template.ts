@@ -12,7 +12,10 @@ export interface TemplateLayoutProps {
   readingTime?: string;
   toc: TocItem[];
   activeSlug?: string;
-  markdown: string;
+  /** The enhanced markdown string. Provided for templates that want to
+   * render it themselves (e.g., via a custom renderer). Most templates use
+   * `children` instead, which is the already-rendered React element tree. */
+  markdown?: string;
   children: ReactNode;
 }
 

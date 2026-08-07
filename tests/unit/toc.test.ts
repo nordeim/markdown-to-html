@@ -14,7 +14,9 @@ describe("buildToc", () => {
     expect(buildToc("### Orphan\n## Real\n", 4).map((t) => t.slug)).toEqual(["orphan", "real"]);
   });
   it("ignores fenced headings", () => {
-    expect(buildToc("```\n## Hidden\n```\n## Visible\n", 4).map((t) => t.slug)).toEqual(["visible"]);
+    expect(buildToc("```\n## Hidden\n```\n## Visible\n", 4).map((t) => t.slug)).toEqual([
+      "visible",
+    ]);
   });
   it("respects maxDepth but still reserves slugs", () => {
     expect(buildToc("## A\n#### Deep\n## A\n", 3).map((t) => t.slug)).toEqual(["a", "a-1"]);

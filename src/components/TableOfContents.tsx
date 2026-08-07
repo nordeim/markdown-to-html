@@ -13,7 +13,7 @@ export function TableOfContents({ items, activeSlug, onNavigate }: TableOfConten
   }
 
   return (
-    <nav>
+    <nav aria-label="Table of contents">
       <ul className="space-y-1">
         {items.map((item) => (
           <TocItemComponent

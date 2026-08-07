@@ -34,8 +34,7 @@ This is a critical issue.
     const { enhanced } = enhanceMarkdown(raw, registry);
     render(<MarkdownRenderer markdown={enhanced} registry={registry} />);
 
-    expect(screen.getByRole("heading", { level: 2, name: "Security Finding" }))
-      .toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Security Finding" })).toBeInTheDocument();
 
     expect(screen.getByLabelText("Severity: Critical")).toBeInTheDocument();
     expect(screen.getByLabelText("Confidence: Verified")).toBeInTheDocument();
@@ -63,7 +62,6 @@ This is a critical issue.
   it("handles malformed markdown without crashing", () => {
     const md = "## Valid\n\n```\nUnclosed code block";
     render(<MarkdownRenderer markdown={md} registry={registry} />);
-    expect(screen.getByRole("heading", { level: 2, name: "Valid" }))
-      .toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 2, name: "Valid" })).toBeInTheDocument();
   });
 });

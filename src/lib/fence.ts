@@ -1,6 +1,6 @@
 export interface MarkdownRegion {
   line: string;
-  lineNumber: number;   // 1-based
+  lineNumber: number; // 1-based
   insideFence: boolean;
 }
 

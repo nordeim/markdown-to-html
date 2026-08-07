@@ -5,6 +5,7 @@ import { enhanceMarkdown } from "@/lib/enhance";
 import { buildToc } from "@/lib/toc";
 import { parseDocument } from "@/lib/frontmatter";
 import { loadRegistry } from "@/lib/tags";
+import { estimateReadingTime } from "@/lib/reading-time";
 import { TAGS, TemplateLayout } from "@/templates/active";
 import type { TocItem } from "@/types/toc";
 
@@ -19,13 +20,35 @@ export function App() {
   const registry = useMemo(() => loadRegistry(TAGS), []);
 
   // Memoize the enhanced markdown (regex preprocessing + fence scan)
-  const enhanced = useMemo(
-    () => enhanceMarkdown(body, registry),
-    [body, registry],
-  );
+  const enhanced = useMemo(() => enhanceMarkdown(body, registry), [body, registry]);
 
   // Memoize the TOC
   const toc = useMemo(() => buildToc(body, 4), [body]);
+
+  // Memoize the reading-time estimate (prose-word count, not raw character count)
+  const readingTime = useMemo(() => estimateReadingTime(body), [body]);
+
+  // Surface enhance warnings (unknown badge values, etc.) to the console.
+  // Warnings indicate authoring mistakes — they should never silently
+  // disappear. Production builds keep the same behavior because the warning
+  // text is small and the call only fires when warnings exist.
+  useEffect(() => {
+    if (enhanced.warnings.length === 0) return;
+    console.warn(
+      `[markdown-to-web] ${enhanced.warnings.length} enhance warning(s):\n` +
+        enhanced.warnings.map((w) => `  - ${w}`).join("\n"),
+    );
+  }, [enhanced.warnings]);
+
+  // Keep document.title in sync with frontmatter.title so browser tabs,
+  // bookmarks, and history reflect the actual document, not the hardcoded
+  // "Skills Catalog" placeholder in index.html.
+  useEffect(() => {
+    const title = frontmatter.title ?? "Skills Catalog";
+    if (document.title !== title) {
+      document.title = title;
+    }
+  }, [frontmatter.title]);
 
   // Active section tracking
   const [activeSlug, setActiveSlug] = useState<string>("");
@@ -36,6 +59,15 @@ export function App() {
 
     const observer = new IntersectionObserver(
       (entries) => {
+        // Track whether any entry is currently intersecting. If every observed
+        // entry reports not-intersecting, clear activeSlug so the TOC does not
+        // highlight a section the user has scrolled past (or has not yet
+        // reached). The "every not-intersecting" guard prevents thrash when
+        // multiple sections are partially visible.
+        if (entries.length > 0 && entries.every((e) => !e.isIntersecting)) {
+          setActiveSlug("");
+          return;
+        }
         for (const entry of entries) {
           if (entry.isIntersecting) setActiveSlug(entry.target.id);
         }
@@ -61,6 +93,7 @@ export function App() {
         subtitle={frontmatter.subtitle}
         author={frontmatter.author}
         date={frontmatter.date}
+        readingTime={readingTime}
         toc={toc}
         activeSlug={activeSlug}
         markdown={enhanced.enhanced}

@@ -5,12 +5,10 @@ export function ErrorFallback({ error }: { error: Error | null }) {
       aria-live="assertive"
       className="mx-auto my-16 max-w-xl rounded-lg border border-border bg-bg-secondary p-6"
     >
-      <h2 className="text-xl font-semibold text-text">
-        This document couldn't be rendered
-      </h2>
+      <h2 className="text-xl font-semibold text-text">This document couldn't be rendered</h2>
       <p className="mt-2 text-sm text-text-secondary">
-        The content failed to render. Try reloading; if the problem persists, the
-        markdown source may be malformed.
+        The content failed to render. Try reloading; if the problem persists, the markdown source
+        may be malformed.
       </p>
       {import.meta.env.DEV && error && (
         <pre className="mt-4 overflow-auto rounded bg-text p-3 text-xs text-bg whitespace-pre-wrap">

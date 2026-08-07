@@ -13,6 +13,6 @@ describe("Bundle Size", () => {
     const content = readFileSync(distPath);
     const gzipped = gzipSync(content);
 
-    expect(gzipped.length).toBeLessThan(250 * 1024);  // 250 KB
+    expect(gzipped.length).toBeLessThan(250 * 1024); // 250 KB
   });
 });

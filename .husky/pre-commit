@@ -1,0 +1,21 @@
+#!/usr/bin/env sh
+# Husky pre-commit hook — runs lint-staged (ESLint + Prettier + markdownlint
+# on staged files) followed by a full typecheck. Exits non-zero on first
+# failure, blocking the commit. Per project policy, no guardrail is weakened
+# to make a commit pass — fix the cause, not the symptom.
+
+npx lint-staged
+status=$?
+if [ $status -ne 0 ]; then
+  echo "❌ lint-staged failed — commit blocked."
+  exit $status
+fi
+
+npm run typecheck
+status=$?
+if [ $status -ne 0 ]; then
+  echo "❌ typecheck failed — commit blocked."
+  exit $status
+fi
+
+echo "✅ Pre-commit checks passed."

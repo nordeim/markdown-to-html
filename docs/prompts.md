@@ -1,0 +1,2 @@
+please meticulously plan to create a comprehensive and complete skill file with filename `markdown-html-pipeline_SKILL-v2.md` that captures/distill the practical process and the expertise/knowledge, including lessons and patterns  and anti-patterns learnt, you gained in creating the enhanced codebase. Use the repo included skill `docs/markdown-html-pipeline_SKILL.md` as the base (template) to create your updated skill that aligns with your enhanced codebase.
+

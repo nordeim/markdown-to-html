@@ -12,7 +12,11 @@ template: "editorial"
 describe("parseDocument", () => {
   it("extracts metadata and returns the body without the frontmatter block", () => {
     const { frontmatter, body } = parseDocument(DOC);
-    expect(frontmatter).toMatchObject({ title: "My Document", author: "Jane Doe", template: "editorial" });
+    expect(frontmatter).toMatchObject({
+      title: "My Document",
+      author: "Jane Doe",
+      template: "editorial",
+    });
     expect(body.startsWith("# Body")).toBe(true);
     expect(body).not.toContain("title:");
   });

@@ -11,18 +11,12 @@ export const technicalComponents: Partial<ComponentsMap> = {
     </h2>
   ),
   h3: ({ id, children }) => (
-    <h3
-      id={id}
-      className="mt-8 scroll-mt-24 text-xl font-semibold text-text"
-    >
+    <h3 id={id} className="mt-8 scroll-mt-24 text-xl font-semibold text-text">
       {children}
     </h3>
   ),
   h4: ({ id, children }) => (
-    <h4
-      id={id}
-      className="mt-6 scroll-mt-24 text-lg font-semibold text-text-secondary"
-    >
+    <h4 id={id} className="mt-6 scroll-mt-24 text-lg font-semibold text-text-secondary">
       {children}
     </h4>
   ),

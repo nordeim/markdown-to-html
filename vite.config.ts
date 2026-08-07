@@ -6,7 +6,7 @@ import { resolve } from "path";
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), viteSingleFile()],
-  resolve: { alias: { "@": resolve(__dirname, "src") } },
+  resolve: { alias: { "@": resolve(import.meta.dirname, "src") } },
   build: {
     target: "es2022",
     cssCodeSplit: false,

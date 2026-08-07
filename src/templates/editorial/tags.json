@@ -1,0 +1,20 @@
+{
+  "Severity": {
+    "name": "Severity",
+    "values": {
+      "critical": { "accent": 1 },
+      "high": { "accent": 2 },
+      "medium": { "accent": 3 },
+      "low": { "accent": 4 }
+    }
+  },
+  "Confidence": {
+    "name": "Confidence",
+    "values": {
+      "verified": { "accent": 4 },
+      "reasoned": { "accent": 3 },
+      "assumed": { "accent": 2 },
+      "unverifiable": { "accent": 1 }
+    }
+  }
+}

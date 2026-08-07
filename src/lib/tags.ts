@@ -1,11 +1,6 @@
-import type { TagRegistry } from "@/types/tag";
+import type { TagRegistry, ResolvedBadge } from "@/types/tag";
 
-export interface ResolvedBadge {
-  tag: string;
-  value: string;
-  label: string;
-  accent: 1 | 2 | 3 | 4 | 5;
-}
+export type { ResolvedBadge };
 
 export function validateRegistry(registry: TagRegistry): string[] {
   const errors: string[] = [];

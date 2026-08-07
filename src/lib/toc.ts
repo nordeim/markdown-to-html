@@ -1,12 +1,8 @@
 import GithubSlugger from "github-slugger";
 import { scanLines } from "@/lib/fence";
+import type { TocItem } from "@/types/toc";
 
-export interface TocItem {
-  level: 2 | 3 | 4;
-  text: string;
-  slug: string;
-  children: TocItem[];
-}
+export type { TocItem };
 
 const ANY_HEADING_RE = /^(#{1,6})\s+(.+)$/;
 
@@ -14,9 +10,9 @@ const ANY_HEADING_RE = /^(#{1,6})\s+(.+)$/;
 function headingText(raw: string): string {
   return raw
     .replace(/`/g, "")
-    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1")  // image → alt text
-    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")   // link → link text
-    .replace(/<(https?:\/\/[^>]+)>/g, "$1")    // autolink → URL
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, "$1") // image → alt text
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1") // link → link text
+    .replace(/<(https?:\/\/[^>]+)>/g, "$1") // autolink → URL
     .trim();
 }
 
@@ -32,7 +28,7 @@ export function buildToc(markdown: string, maxDepth: 2 | 3 | 4 = 4): TocItem[] {
 
     const level = match[1]!.length;
     const text = headingText(match[2]!);
-    const slug = slugger.slug(text);          // reserve the slug at EVERY level
+    const slug = slugger.slug(text); // reserve the slug at EVERY level
 
     if (level < 2 || level > maxDepth) continue;
 
