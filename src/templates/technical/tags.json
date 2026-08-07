@@ -1,0 +1,19 @@
+{
+  "Status": {
+    "name": "Status",
+    "values": {
+      "stable":       { "accent": 4 },
+      "experimental": { "accent": 2 },
+      "deprecated":   { "accent": 1 },
+      "removed":      { "accent": 1 }
+    }
+  },
+  "Visibility": {
+    "name": "Visibility",
+    "values": {
+      "public":     { "accent": 4 },
+      "internal":   { "accent": 2 },
+      "restricted": { "accent": 1 }
+    }
+  }
+}
