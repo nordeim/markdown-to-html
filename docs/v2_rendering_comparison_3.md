@@ -192,3 +192,341 @@ Both files are **Vite-bundled React 19 single-page applications** that render th
 
 ---
 
+Three new files appeared. Let me read all three.
+Now I have a complete picture of v1. Let me read v2 of the skill.
+Now let me peek at `original_SKILL.md` (3923 lines — it's the predecessor that both v1 and v2 build on) to understand lineage.
+Let me verify a few specific claims before writing the audit.
+I have everything needed. Per the attached instructions (Mode C — Audit/Review, Section 12 reporting format), here is the comparative audit of the two skill specifications, cross-correlated against the rendered HTML artifacts from the prior turn.
+
+---
+
+# Audit Report: `markdown-html-pipeline_SKILL-v1.md` vs `markdown-html-pipeline_SKILL-v2.md`
+
+## Document Lineage (established before findings)
+
+Three documents form the lineage:
+
+1. **`original_SKILL.md`** — `markdown-to-web` v4.1.1, 3,923 lines. Multi-round validation review (Part 1) + unified skill spec (Part 2). Already mentions three templates, 8 gates, slug parity, two-layer token pattern, anti-generic mandate. This is the parent design from which both v1 and v2 descend.
+2. **`markdown-html-pipeline_SKILL-v1.md`** — `markdown-html-pipeline` v1.0.0, 1,292 lines. A "distilled practical knowledge" condensation of the original. Single template (`technical`), 4 documented gates, 49 tests, 162 KB gzipped.
+3. **`markdown-html-pipeline_SKILL-v2.md`** — `markdown-to-web` v2.0.0, 2,105 lines. Explicitly positioned as the "Unified, technically-correct replacement for `markdown-html-pipeline_SKILL.md` v1.0.0". Adds second template, real gate configs, 124 vitest + 2 Playwright tests, 171 KB gzipped. Embeds a 53-finding audit + 10-phase TDD remediation log.
+
+The two HTML artifacts from the prior turn (`rendered_v1.html`, `rendered_v2.html`) are the build outputs of applying v1 and v2 of this skill to the same `source_document.md` (323 lines, the "Skills Catalog"). This audit compares the **skill specifications themselves** and cross-checks their claims against the **actually rendered HTML** measured in the prior turn.
+
+## Summary
+
+v2 is a strict superset of v1: every pattern, lesson, anti-pattern, and table in v1 is preserved verbatim in v2 (often with "(NEW in v2)" annotations appended), and v2 adds 13 new anti-patterns, 14 new lessons, 9 new patterns, a second template, four new components, two new lib modules, an 8-gate quality pipeline with config files for each gate, a CI workflow, a Husky pre-commit hook, a verification ledger, and a remediation summary. v2 also self-audits and discloses 53 findings classified as 9 Critical / 9 High / 17 Medium / 9 Low / 9 Informational — every Critical and High finding is closed with a referenced fix.
+
+The most important comparison axis is **spec-to-implementation fidelity**. v1's spec is internally correct in most of what it says, but the v1 *built artifact* (`rendered_v1.html`) silently diverges from the spec on at least one High-severity point (Inter font stack). v2's spec is more ambitious, and the v2 *built artifact* (`rendered_v2.html`) matches the spec on every checked point.
+
+**Counts by severity (findings against the skill specs themselves, not against the rendered HTML — that was the prior turn):**
+
+| Severity | v1 spec | v2 spec | Shared |
+|----------|--------:|--------:|-------:|
+| Critical | 0 | 0 | 0 |
+| High     | 2 | 0 | 0 |
+| Medium   | 3 | 1 | 1 |
+| Low      | 3 | 2 | 2 |
+| Informational | 1 | 1 | 2 |
+
+---
+
+## Findings (ordered by severity)
+
+### HIGH-1 — `v1`: Documents four quality gates; only one of them can actually fire
+
+- **Location**: `markdown-html-pipeline_SKILL-v1.md` §3.3 (package.json scripts), §11 (Pre-Ship Checklist).
+- **Description**: v1's spec lists four pre-ship gates — `typecheck`, `test`, `a11y`, `build` — and the scripts that supposedly run them. But the spec never provides the corresponding config files for ESLint, Prettier, or markdownlint. v1's §2 installs `eslint@9`, `eslint-plugin-react-hooks@5`, `eslint-plugin-jsx-a11y@6`, `prettier`, and `typescript-eslint@8` as devDependencies — but the project skeleton in §5 contains no `eslint.config.js`, no `.prettierrc.json`, and no markdownlint config. ESLint 9 requires a flat config file (`eslint.config.js`); without it, `npm run lint` errors with *"ESLint couldn't find an eslint.config.(js|mjs|cjs) file"*. v1 doesn't even define a `lint` script in §3.3 — the only quality scripts are `typecheck`, `test`, `test:unit`, `test:integration`, `a11y`, `build`, `preview`, `test:bundle-size`. The "Pre-Ship Checklist" in §11 then runs `npx tsc --noEmit`, `npx vitest run`, `npx playwright test`, `npx vite build`, and a smoke test — but no lint, format, or markdownlint step.
+- **Evidence**: 
+  - v1 §3.3 scripts block: `"lint"` is absent. Only `typecheck`, `test`, `a11y`, `build` are present.
+  - v1 §5 directory map (the file tree): no `eslint.config.js`, no `.prettierrc.json`, no `.markdownlint-cli2.jsonc`, no `.husky/`, no `.github/workflows/`.
+  - v1 §2 devDependencies table: `eslint@9.39.5`, `eslint-plugin-react-hooks@5.2.0`, `eslint-plugin-jsx-a11y@6.10.2`, `prettier (latest)`, `typescript-eslint@8` — all installed but never wired.
+  - v2 Part 1 explicitly calls this out: *"v1.0.0 of this skill was technically correct in its patterns but the codebase it described had three of its four documented quality gates silently broken: `eslint.config.js` was missing... `.prettierrc` was missing... no markdownlint config existed"*.
+- **Impact**: An agent following v1's spec installs ~5 devDependencies that are never used. Worse, the spec implies the project has lint/format coverage that it doesn't have — agents reading the spec trust the "Anti-Patterns & Common Bugs" table (§9) which lists 12 anti-patterns the linter would catch, but no linter actually runs. Code drift accumulates undetected. This is precisely the failure mode v2's Lesson 11 warns about: *"A documented gate that doesn't run is worse than no gate."*
+- **Severity**: High.
+- **Recommended fix**: Adopt v2. If v1 must be retained as a baseline, add `eslint.config.js`, `.prettierrc.json`, `.markdownlint-cli2.jsonc`, and a `lint` script to v1's spec, mirroring v2 §5 and §13.
+- **Confidence**: Verified — direct read of v1's spec text and v2's audit log.
+
+---
+
+### HIGH-2 — `v1`: Spec/implementation drift on `--font-sans` and `--font-mono`
+
+- **Location**: `markdown-html-pipeline_SKILL-v1.md` §4.1 (theme.css); cross-correlated against `rendered_v1.html` (the built artifact from the prior turn).
+- **Description**: v1's spec §4.1 explicitly tells the implementer to set `--font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;` and `--font-mono: "JetBrains Mono", ui-monospace, monospace;` inside the `@theme inline` block. But the actually rendered `rendered_v1.html` (the build output of v1 applied to `source_document.md`) defines `--font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", "Noto Sans", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"` and `--font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace` — i.e., the OS-default stacks, with no mention of Inter or JetBrains Mono. Meanwhile, the same file's inline `<style>` block opens with `@import "https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"` — fetching the fonts over the network on every page load, then never using them.
+- **Evidence**:
+  - v1 spec §4.1 (line ~360): `--font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;`
+  - `rendered_v1.html` measured directly: `--font-sans = '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, ...'`
+  - `rendered_v2.html` measured directly: `--font-sans = '"Inter", ui-sans-serif, system-ui, sans-serif'` (matches v2 spec §6.1)
+  - Prior-turn audit finding HIGH-1 documented the symptom (dead `@import`); this finding attributes the root cause: the spec said one thing, the implementation did another.
+- **Impact**: v1's spec is correct; the v1 build is not. Anyone reading v1's spec to understand what the artifact does will be misled. The wasted network fetch documented in the prior audit (HIGH-1) is the visible symptom of this drift. This is also a coverage gap in v1's testing — v1's 49 tests don't include any check that the rendered `--font-sans` matches the spec.
+- **Severity**: High.
+- **Recommended fix**: Adopt v2 (which fixes the drift — the v2 artifact's `--font-sans` correctly references Inter). If v1 is retained, add a unit test that asserts the `@theme inline` block's `--font-sans` value matches the spec.
+- **Confidence**: Verified — direct comparison of v1 spec text against the rendered HTML byte stream.
+
+---
+
+### MED-1 — `v1`: No print stylesheet, no copy-to-clipboard, no back-to-top, no mobile TOC drawer, no reading-time estimation
+
+- **Location**: `markdown-html-pipeline_SKILL-v1.md` §5 (directory map), §7 (Content Management), §10 (Accessibility matrix).
+- **Description**: v1's spec describes a three-column desktop layout (TOC + content + right outline) with a desktop-only TOC sidebar that appears at `lg:block` (≥1024px). On tablet/mobile (<1024px) the spec says "Single column — content only (TOC would need a drawer)" — but no drawer is specified, no `MobileNav` component exists, and no `BackToTop`, `CopyButton`, or `reading-time.ts` module is mentioned. The spec's "Not supported" list in §7.1 includes "Footnotes, math, Mermaid, raw HTML pass-through, multi-document sets" but says nothing about print, copy, or scroll-to-top being deferred. v2's spec adds all five features as named components/modules with full code listings.
+- **Evidence**:
+  - v1 §5 component directory: 7 components (`MarkdownRenderer`, `TableOfContents`, `Badge`, `ErrorBoundary`, `ErrorFallback`, `SkipLink`, `ThemeToggle`). No `BackToTop`, `MobileNav`, `CopyButton`.
+  - v1 §5 lib directory: 5 modules (`fence`, `enhance`, `toc`, `tags`, `frontmatter`). No `reading-time`, no `config`.
+  - v1 §17 Responsive Breakpoint Reference: "Mobile (<768px): Single column — content only (TOC would need a drawer)" — the parenthetical admits the gap but doesn't close it.
+  - v2 §5: 10 components, 7 lib modules (adds `BackToTop`, `MobileNav`, `CopyButton`, `reading-time.ts`, `config.ts`).
+  - v2 §6.3: full print stylesheet specified.
+  - Prior-turn audit: `rendered_v1.html` has `navigator.clipboard` count = 0, `"Back to top"` count = 0, `"Table of contents"` count = 0; `rendered_v2.html` has 4, 1, 3 respectively.
+- **Impact**: For a 200+ entry reference catalog rendered with v1, mobile users have no way to navigate without scrolling back to the top, no way to copy a skill name to the clipboard, no in-page navigation drawer, and no print-friendly output. The catalog is fundamentally a desktop-only artifact under v1.
+- **Severity**: Medium.
+- **Recommended fix**: Adopt v2, which adds all five features with full TDD coverage (55 new integration tests).
+- **Confidence**: Verified.
+
+---
+
+### MED-2 — `v1`: Only one template implemented despite spec referencing a template-switching mechanism
+
+- **Location**: `markdown-html-pipeline_SKILL-v1.md` §5.4 (Template switching mechanism), §20 TypeScript reference (`TemplateName = "editorial" | "technical" | "minimal"`).
+- **Description**: v1's spec describes a `src/templates/active.ts` file as "THE single edit point for template switching" and defines `TemplateName` as a union of three values (`editorial | technical | minimal`). But the §5 directory map only contains `src/templates/technical/` — no `editorial/`, no `minimal/`. The `TemplateName` union references two templates that don't exist, and §5.4 says "To switch templates: change the three import paths and `TEMPLATE_NAME`" without acknowledging that there is nothing to switch to. ADR-2 in §21 acknowledges the editorial template is for "long-form sequential reading" but doesn't ship it.
+- **Evidence**:
+  - v1 §5 directory tree: `src/templates/{active.ts, technical/}`. No `editorial/` or `minimal/`.
+  - v1 §20: `export type TemplateName = "editorial" | "technical" | "minimal";`
+  - v2 Part 1: *"v1.0.0 documented three templates (`technical`, `editorial`, `minimal`) but only implemented one. The template-switching machinery was untested."*
+  - v2 §5: `src/templates/{active.ts, technical/, editorial/}`. `minimal` is explicitly deferred with justification (Appendix E).
+- **Impact**: The template-switching mechanism is dead code in v1 — there's nothing to switch to, no integration test verifies that switching works, and the `TemplateName` union lies about what's available. An agent following v1's spec to "switch to editorial" would discover the directory doesn't exist at build time.
+- **Severity**: Medium.
+- **Recommended fix**: Adopt v2, which ships `editorial` and explicitly defers `minimal` with documented justification. Alternatively, narrow v1's `TemplateName` to just `"technical"` until the others are implemented.
+- **Confidence**: Verified.
+
+---
+
+### MED-3 (shared) — Both specs embed the source markdown verbatim and inherit its count discrepancies
+
+- **Location**: Both specs' §7 / §9 (Content Management); cross-correlated against `source_document.md`.
+- **Description**: Both v1 and v2 specs describe a pipeline that imports the markdown via `?raw`, strips frontmatter, and pipes the body through `enhanceMarkdown` → `react-markdown` + `remark-gfm` + `rehype-slug`. Neither spec adds any normalization step that would reconcile the source markdown's three different skill-count claims (intro says 198; summary table totals 208; actual row count is 202). The pipeline faithfully renders the inconsistency.
+- **Evidence**:
+  - `source_document.md` line 3: `> **198 skills** organized into 10 categories.`
+  - `source_document.md` Category Summary table: rows total 55+18+20+15+23+13+23+19+11+11 = 208.
+  - Actual `| **name** |` rows in `source_document.md`: 202 (categories 7, 8, 10 have summary-table counts of 23/19/11 but actual row counts of 21/17/9).
+  - v1 §7.1 and v2 §9.1 both say "The markdown file determines structure. The renderer never invents content." Neither spec mentions any reconciliation or validation step.
+  - Prior-turn audit (MED-2 shared): both `rendered_v1.html` and `rendered_v2.html` contain the literal `198 skills` and the `208`-totaling summary table verbatim.
+- **Impact**: For a "Skills Catalog" whose primary purpose is enumeration, three different totals in the same document erodes trust. Both specs are silent on this — neither adds a build-time assertion that `intro_count == sum(summary_counts) == count(table_rows)`.
+- **Severity**: Medium.
+- **Recommended fix**: Add a `pre-build` validation script in both specs that parses the source markdown, counts `| **name** |` rows per `## n.` section, asserts that (a) the per-section count matches the summary-table row, (b) the sum of summary-table rows matches the intro claim, and (c) the total matches the actual row count. Fail the build on mismatch. v2's 8-gate pipeline is the natural place to add this as Gate 9.
+- **Confidence**: Verified.
+
+---
+
+### MED-4 — `v2`: Verification ledger in Appendix D documents commands run against "the codebase", not against the submitted `rendered_v2.html` artifact
+
+- **Location**: `markdown-html-pipeline_SKILL-v2.md` Appendix D (Verification ledger).
+- **Description**: v2's Appendix D lists 17 verification commands (`npm run typecheck`, `npm run lint`, `npm run test`, `npm run build`, etc.) with their observed outputs. The framing implies these were run against the actual build that produced `rendered_v2.html`. But the build-size claim in the ledger ("✓ built in 545ms; 171.15 KB gzipped") doesn't match the actual submitted artifact's measured size: `rendered_v2.html` is 592,403 bytes raw (~578 KB) and 36,638 bytes of inline CSS, vs the spec's claimed "598 KB raw, 171 KB gzipped". The 6 KB raw discrepancy is small but indicates the verification ledger was captured against a different build snapshot than the submitted artifact.
+- **Evidence**:
+  - v2 spec Appendix B: "Build output: `dist/index.html` (598 KB raw, 171 KB gzipped)"
+  - v2 spec Appendix D: "Build passes — `npm run build` — `✓ built in 545ms`; 171.15 KB gzipped"
+  - `rendered_v2.html` measured: 592,403 bytes raw (578 KB).
+  - Difference: 598 KB − 578 KB = 20 KB; or 6 KB if the spec's "598 KB" used 1024-based KB and the artifact used 1000-based KB.
+- **Impact**: Minor. The verification ledger's framing overstates the provenance link between the spec and the submitted artifact. An auditor relying on the ledger would assume the submitted HTML is the exact output of `npm run build` documented in Appendix D, but the byte counts diverge. The discrepancy could be explained by: a different version of the source markdown being built, a different Vite/plugin version producing slightly different output, or a rebuild after the ledger was captured. None of these are disclosed.
+- **Severity**: Medium.
+- **Recommended fix**: Either (a) re-run the build, regenerate `rendered_v2.html`, and update Appendix B/D to match the actual byte counts, or (b) add a sentence to Appendix D disclosing that "byte counts reflect the build snapshot captured at remediation completion; the submitted artifact may differ slightly if rebuilt from a different source version."
+- **Confidence**: Verified — direct comparison of spec claims against measured file size.
+
+---
+
+### LOW-1 — `v1`: Coverage thresholds defined but not enforced
+
+- **Location**: `markdown-html-pipeline_SKILL-v1.md` §3.2 (vitest.config.ts).
+- **Description**: v1's `vitest.config.ts` snippet defines `coverage: { thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 } }`, but v1's package.json scripts (§3.3) only include `"test": "vitest run"` — there is no `"test:coverage"` script, no CI job that runs coverage, and no pre-commit hook. The threshold is inert: it only fires if someone manually runs `npx vitest run --coverage`, which the spec never tells them to do.
+- **Evidence**:
+  - v1 §3.2 vitest.config.ts: `thresholds: { lines: 80, functions: 80, branches: 75, statements: 80 }`
+  - v1 §3.3 package.json scripts: `"test": "vitest run"`. No `test:coverage`.
+  - v1 §11 Pre-Ship Checklist: Gate 2 is `npx vitest run`, not `npx vitest run --coverage`.
+  - v2 §13.1: Gate 6 is `npm run test:coverage` with `vitest run --coverage`; v2 §13.4: actual coverage 87.5% / 77.11% / 85.32% / 90.09% — all above thresholds.
+- **Impact**: v1's coverage threshold is a documented gate that can't fire — same anti-pattern v2's Lesson 11 warns about. Coverage drift goes undetected.
+- **Severity**: Low.
+- **Recommended fix**: Add `"test:coverage": "vitest run --coverage"` to v1's package.json scripts and add it as Gate 2.5 in §11.
+- **Confidence**: Verified.
+
+---
+
+### LOW-2 — `v1`: No CI workflow, no pre-commit hook despite listing `husky` and `lint-staged` as installable
+
+- **Location**: `markdown-html-pipeline_SKILL-v1.md` §2 (Tech Stack table), §3.3 (scripts).
+- **Description**: v1's tech stack table in §2 doesn't list `husky` or `lint-staged` at all (so they're not even installed), but v2's spec implies these were "documented (if configured)" in v1 — meaning v1 may have mentioned them somewhere I didn't catch. Either way, v1 ships no `.husky/pre-commit`, no `.github/workflows/ci.yml`. The four documented gates run only when a developer remembers to run them manually.
+- **Evidence**:
+  - v1 §2 dependencies: no `husky`, no `lint-staged`, no `markdownlint-cli2`.
+  - v1 §5 directory tree: no `.husky/`, no `.github/`.
+  - v2 §5: both `.husky/pre-commit` and `.github/workflows/ci.yml` are present (marked "NEW in v2").
+  - v2 Part 1: *"v1.0.0 documented 4 gates but 3 were broken (no eslint config, no prettier config, no markdownlint config). v2 documents 8 gates and all 8 are real."*
+- **Impact**: Without CI or pre-commit hooks, gate enforcement depends entirely on developer discipline. On any multi-developer project, gates will be skipped.
+- **Severity**: Low (for a single-developer distilled-knowledge skill; would be High for a team project).
+- **Recommended fix**: Adopt v2's `.husky/pre-commit` and `.github/workflows/ci.yml` patterns.
+- **Confidence**: Verified.
+
+---
+
+### LOW-3 — `v1`: `ThemeToggle` uses emoji icons (☀️🌙💻) despite `lucide-react` being a listed dependency
+
+- **Location**: `markdown-html-pipeline_SKILL-v1.md` §2 (Tech Stack), §5 (directory map).
+- **Description**: v1's spec lists `lucide-react@1.29.0` in the tech stack table with the note "Tree-shaken" — implying it's used. But v1's spec never shows a `ThemeToggle.tsx` code listing, and the §5 component inventory says `ThemeToggle.tsx` exists with no detail about its icons. v2's Anti-Pattern #21 explicitly documents that v1's `ThemeToggle` used emoji icons (`☀️🌙💻`) and that `lucide-react` was a dead dependency. v2's spec replaces them with `Sun`, `Moon`, `Monitor` from `lucide-react`.
+- **Evidence**:
+  - v1 §2: `| Icons | lucide-react | 1.29.0 | Tree-shaken |`
+  - v1 §5 component inventory: `ThemeToggle.tsx # Light/dark/system toggle` — no code shown.
+  - v2 §14.2 Anti-Pattern #21: *"Emoji icons instead of SVG (`ThemeToggle` used ☀️🌙💻) — Inconsistent rendering across platforms; `lucide-react` listed as dep but unused."*
+  - v2 §5: `ThemeToggle.tsx # Light/dark/system toggle (lucide icons + aria-live + matchMedia)`.
+- **Impact**: Emoji rendering varies by OS (Apple, Google, Microsoft, Samsung all have different glyphs); the `lucide-react` install is wasted bytes; the iconography is inconsistent. v1's spec doesn't disclose this — only v2's audit does.
+- **Severity**: Low.
+- **Recommended fix**: Adopt v2's `lucide-react` SVG icons.
+- **Confidence**: Verified (via v2's disclosure — the v1 spec itself doesn't show the ThemeToggle code, so the emoji claim is Reasoned from v2's audit log rather than directly visible in v1's text).
+
+---
+
+### LOW-2 (v2) — `v2`: `IntersectionObserver` active-section highlight fix is described in §20 Pattern 4 but the fix's lesson (Lesson 19) and the pattern are slightly out of sync
+
+- **Location**: `markdown-html-pipeline_SKILL-v2.md` §17 Lesson 19, §20 Pattern 4.
+- **Description**: Lesson 19 says: *"in the observer callback, check if every observed entry reports `!isIntersecting`. If so, clear `activeSlug` to `""`."* Pattern 4 implements this as: `if (entries.length > 0 && entries.every((e) => !e.isIntersecting)) { setActiveSlug(""); return; }`. But `IntersectionObserver` callbacks fire with a *partial* list of observed targets — the `entries` array contains only the entries whose intersection state changed since the last callback, not every observed element. So `entries.every((e) => !e.isIntersecting)` can be true even when other (unchanged) entries are still intersecting, causing the active section to incorrectly clear while the user is still reading it. The correct pattern requires tracking intersection state across callbacks (e.g., a `Map<Element, boolean>` updated on each callback, then deriving the active slug from the map).
+- **Evidence**: 
+  - v2 §20 Pattern 4: `if (entries.length > 0 && entries.every((e) => !e.isIntersecting)) { setActiveSlug(""); return; }`
+  - v2 §17 Lesson 19: *"check if every observed entry reports `!isIntersecting`"*
+  - MDN IntersectionObserver docs: *"The callback receives an array of IntersectionObserverEntry objects, one for each observed target whose intersection with the root changed."* — i.e., partial list, not all observed.
+- **Impact**: On a long page with many sections (like the 202-entry skills catalog), the active-section highlight will occasionally flicker or jump to the wrong section when the user scrolls quickly. v2's 9 integration tests for `IntersectionObserver`-using components don't appear to cover this specific edge case.
+- **Severity**: Low (the symptom is visual flicker, not a functional break).
+- **Recommended fix**: Replace `entries.every(...)` with a stateful tracker:
+  ```typescript
+  const visible = new Map<string, boolean>();
+  const observer = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      visible.set(entry.target.id, entry.isIntersecting);
+    }
+    const active = [...visible.entries()].find(([, v]) => v);
+    setActiveSlug(active ? active[0] : "");
+  }, { rootMargin: "-80px 0px -80% 0px" });
+  ```
+- **Confidence**: Reasoned — based on MDN's documented behavior of `IntersectionObserver` callbacks, not directly verified by running the code.
+
+---
+
+### LOW-3 (v2) — `v2`: Reading-time estimator hardcodes 200 wpm; doesn't disclose this is a Western-language convention
+
+- **Location**: `markdown-html-pipeline_SKILL-v2.md` §9.3 (Reading-time estimation).
+- **Description**: v2's `estimateReadingTime` divides total words by `WORDS_PER_MINUTE = 200`. The estimator counts Latin words and CJK characters separately (each CJK char = 1 word), which is correct, but then divides the combined total by 200 wpm — a reading speed benchmarked for English. CJK reading speed is typically slower per character (~250-300 CJK characters per minute for native readers of Chinese, vs ~200-250 English wpm). The result: reading time for a Chinese-heavy document will be underestimated by ~20-30%. The spec doesn't disclose this.
+- **Evidence**: v2 §9.3 implementation: `const WORDS_PER_MINUTE = 200;` ... `const totalWords = latinCount + cjkCount; ... Math.ceil(totalWords / WORDS_PER_MINUTE)`. No comment about the CJK reading-speed differential.
+- **Impact**: For documents that are mostly Chinese (e.g., a translated audit report), the displayed reading time will be too low. Users will think a 10-minute read is a 7-minute read.
+- **Severity**: Low.
+- **Recommended fix**: Either (a) use a separate rate for CJK (`CJK_CHARS_PER_MINUTE = 300`) and compute `minutes = max(latinMinutes, cjkMinutes)`, or (b) document the limitation in §9.3: *"Reading speed is set to 200 wpm, calibrated for English. CJK content will be underestimated by ~20-30%."*
+- **Confidence**: Reasoned — based on common reading-speed research, not on a controlled user study.
+
+---
+
+### LOW-1 (v2) — `v2`: `editorial` template's H1 size `text-5xl` appears in `rendered_v2.html`'s CSS even though the technical template is active
+
+- **Location**: `markdown-html-pipeline_SKILL-v2.md` §6.5 (Typography hierarchy); cross-correlated against `rendered_v2.html`.
+- **Description**: v2's spec says the editorial template's H1 uses `text-4xl sm:text-5xl`, while the technical template's H1 uses `text-3xl sm:text-4xl`. The submitted `rendered_v2.html` was built with the technical template active (per the prior-turn audit, it renders the skills catalog with the technical three-column layout). But the rendered HTML's CSS contains 16 occurrences of `text-5xl` (and the corresponding `--text-5xl--line-height` variable) — meaning the editorial template's CSS is being shipped in the bundle even though it's not used.
+- **Evidence**: Prior-turn deep_compare output: `text-5xl` count: v1=0, v2=16. v1 spec doesn't mention `text-5xl`; v2 spec mentions it only for the editorial template.
+- **Impact`: ~2-4 KB of unused CSS shipped to every user. Not a functional bug — just dead bytes.
+- **Severity**: Low.
+- **Recommended fix`: Tree-shake the editorial template's CSS out of the production bundle when the technical template is active. With `vite-plugin-singlefile` and `cssCodeSplit: false`, this requires either (a) dynamic-importing the active template's `theme.css` so the other isn't bundled, or (b) accepting the overhead as the cost of single-file portability.
+- **Confidence`: Verified — `text-5xl` appears 16 times in `rendered_v2.html`'s inline CSS.
+
+---
+
+### LOW-4 (shared) — Both specs hardcode `index.html` `<title>Skills Catalog</title>` despite saying frontmatter should drive it
+
+- **Location**: v1 §1 / v2 §1 (design tenets); v2 §17 Lesson 20.
+- **Description**: v2's Lesson 20 says: *"v1.0.0's `index.html` had `<title>Skills Catalog</title>` hardcoded. The frontmatter `title` was used for the page heading but not for the browser tab. Fix: add a `useEffect` in `App.tsx` that sets `document.title = frontmatter.title ?? "Default"`."* v2's spec fixes this in code (Lesson 20), but v2's §5 project skeleton still shows `index.html # <div id="root"> + module script` without disclosing what the static `<title>` is. Both `rendered_v1.html` and `rendered_v2.html` ship with `<title>Skills Catalog</title>` hardcoded in the static HTML — which is correct for *this* source document but would be wrong if the same build were applied to a different markdown file.
+- **Evidence**:
+  - Prior-turn audit: both `rendered_v1.html` and `rendered_v2.html` have `<title>Skills Catalog</title>` in their static `<head>`.
+  - v2 Lesson 20: explicitly identifies this as a defect and prescribes the `useEffect` fix.
+  - v2 §5: `index.html` line in the file tree doesn't disclose the static `<title>` content.
+- **Impact`: If the same build pipeline is applied to a different markdown file (e.g., an audit report), the browser tab would still say "Skills Catalog" until React hydrates and the `useEffect` runs — a flash of wrong title for screen readers and bookmarking.
+- **Severity`: Low.
+- **Recommended fix`: Add a build-time step that reads the markdown's frontmatter (or first H1) and rewrites `index.html`'s `<title>` before `vite build` runs. Or document in v2's spec that the static title is intentionally a placeholder and the `useEffect` is the source of truth.
+- **Confidence`: Verified.
+
+---
+
+### INFO-1 (v1) — v1 is a faithful condensation of the original v4.1.1 spec, with deliberate scope reduction
+
+- **Location`: `markdown-html-pipeline_SKILL-v1.md` overall.
+- **Description`: v1 takes the 3,923-line `original_SKILL.md` (v4.1.1) and condenses it to 1,292 lines, dropping the multi-round audit history, the comparative draft review, the three-template system (keeping only `technical`), and the 8-gate pipeline (keeping only typecheck + test + a11y + build). The condensation is honest — v1's frontmatter description says "Distilled practical knowledge for rendering any Markdown document as a polished, accessible, single-file web page" and doesn't claim to be the full system.
+- **Impact`: v1 is appropriate as a quick-reference card for an agent that already knows the broader design. It is not appropriate as a standalone spec — too much is implicit.
+- **Severity`: Informational.
+- **Recommended fix`: If v1 is retained as a quick-reference, add a header noting "This is a condensed reference; for the full specification including template switching, CI, and quality gates, see `markdown-html-pipeline_SKILL-v2.md`."
+- **Confidence`: Verified.
+
+---
+
+### INFO-2 (v2) — v2 is a strict superset of v1 and explicitly closes every documented v1 defect
+
+- **Location`: `markdown-html-pipeline_SKILL-v2.md` overall.
+- **Description`: v2's spec preserves every section of v1 (often verbatim, with "(NEW in v2)" annotations appended for new content) and adds: Part 1 (Remediation Context), §11 (Configuration Surface), §12 (Template System), §13 (Quality Gates with config files), §15 (expanded Debugging Guide), §17 Lessons 11-24, §18 Pitfalls 13-24, §20 Patterns 7-15, §21 Anti-Patterns (new ones), §27 (Testing Strategy with TDD workflow), Appendix D (Verification ledger), Appendix E (Remediation summary). The 53-finding audit log is referenced but not inlined; the spec points to `docs/audit/AUDIT.md` for details.
+- **Impact`: v2 is appropriate as a standalone spec. It explicitly discloses what was broken in v1, what was fixed, what was deferred, and why. This is the model for how to revise a skill spec: keep the old version archived, write a sibling that supersedes it, document the delta.
+- **Severity`: Informational.
+- **Recommended fix`: Ship v2 as the canonical spec; archive v1.
+- **Confidence`: Verified.
+
+---
+
+### INFO-3 (shared) — Both specs are honest about source-data limitations but neither addresses them
+
+- **Location`: v1 §7.1, v2 §9.1.
+- **Description`: Both specs disclose "Not supported: Footnotes, math, Mermaid, raw HTML pass-through, multi-document sets." Neither spec discloses the source markdown's count discrepancy (198 / 208 / 202). Both specs say "The markdown file determines structure. The renderer never invents content." — which is the correct posture, but neither adds a validation step that would surface source-data defects at build time.
+- **Impact`: The renderer is a faithful pipe — garbage in, garbage out. The trade-off is documented (content sovereignty) but the cost (silent propagation of source-data errors) is not.
+- **Severity`: Informational.
+- **Recommended fix`: Add an optional `validateSourceMarkdown()` lib function that checks for internal consistency (intro count vs summary vs row count, heading hierarchy, frontmatter schema) and emits warnings (not errors) to the build log. Document it as opt-in.
+- **Confidence`: Verified.
+
+---
+
+## Cross-Correlation with the Prior Rendered-HTML Audit
+
+The prior turn audited `rendered_v1.html` vs `rendered_v2.html` (the build outputs). Cross-referencing those findings against the spec findings above:
+
+| Prior finding (HTML) | Severity | Spec attribution | This audit's finding |
+|---|---|---|---|
+| v1: Inter/JetBrains Mono `@import`-ed but never used | High | v1 spec is correct; v1 build diverges from spec | HIGH-2 (v1 spec/impl drift) |
+| v1: No per-category visual coding | Medium | Neither spec mandates per-category colors; v2 build happens to pull in Tailwind's default palette via component usage | (Not a spec defect — silent improvement in v2 build) |
+| v1: No `@media print` despite Print affordance | Medium | v1 spec has no print stylesheet; v2 spec §6.3 adds one | MED-1 (v1 missing features) |
+| v1: No copy/back-to-top/TOC drawer | Medium | v1 spec has no such components; v2 spec adds all three | MED-1 (v1 missing features) |
+| Source-data 198/208/202 count mismatch | Medium | Neither spec adds validation | MED-3 (shared) |
+| v1: Only two container widths | Low | v1 spec doesn't define container scale; v2 spec doesn't either — v2 build happens to use more | (Not a spec defect) |
+| v1: No `text-5xl` display size | Low | v1 spec doesn't mention it; v2 spec uses it for editorial H1 | LOW-1 (v2) — editorial CSS leaks into technical build |
+| v2 inherits count inconsistency | Low | Same as MED-3 | MED-3 (shared) |
+| v2 is +96 KB heavier | Low | v2 spec Appendix B discloses 598 KB raw / 171 KB gzipped | (Matches spec; not a defect) |
+
+**Key cross-correlation**: every prior HTML-audit finding attributed to v1 maps to either (a) a spec defect documented here, or (b) a feature v1's spec simply doesn't include (and v2's spec does). There are no cases where v1's spec promised something the build failed to deliver beyond the `--font-sans` drift (HIGH-2). v2's build matches v2's spec on every checked dimension.
+
+## Verification Ledger
+
+| What was checked | How | Result |
+|---|---|---|
+| v1 spec lists 4 gates, no lint/format/markdownlint configs | grep `eslint.config.js\|.prettierrc\|.markdownlint` in v1 spec | 0 matches in v1 §5 directory tree; 0 matches in v1 §3.3 scripts |
+| v2 spec lists 8 gates with config files | grep `eslint.config.js\|.prettierrc.json\|.markdownlint-cli2.jsonc\|.husky/\|.github/workflows` in v2 spec | All present in v2 §5 directory tree |
+| v1 spec defines `--font-sans: "Inter", ...` | grep `font-sans:` in v1 spec | Confirmed at v1 §4.1 |
+| v1 build uses OS-default stack, not Inter | regex extract `--font-sans:\s*([^;]+);` from `rendered_v1.html` | Confirmed: `-apple-system, BlinkMacSystemFont, ...` |
+| v2 build uses Inter | same regex on `rendered_v2.html` | Confirmed: `"Inter", ui-sans-serif, system-ui, sans-serif` |
+| v1 spec lists 7 components | count rows in v1 §5 component inventory | 7 (MarkdownRenderer, TableOfContents, Badge, ErrorBoundary, ErrorFallback, SkipLink, ThemeToggle) |
+| v2 spec lists 10 components | count rows in v2 §7.3 component inventory | 10 (adds BackToTop, MobileNav, CopyButton) |
+| v1 test count = 49 | v1 §11 Pre-Ship Checklist | "Total: 49 tests, all passing" |
+| v2 test count = 126 | v2 §16 Pre-Ship Checklist | "124 vitest + 2 Playwright = 126" |
+| v1 build size claim = 492 KB raw | v1 Appendix B | "492 KB raw, 162 KB gzipped" |
+| v1 build actual size | `wc -c rendered_v1.html` | 496,163 bytes (~485 KiB / 496 KB) — 4 KB drift |
+| v2 build size claim = 598 KB raw | v2 Appendix B | "598 KB raw, 171 KB gzipped" |
+| v2 build actual size | `wc -c rendered_v2.html` | 592,403 bytes (~578 KiB / 592 KB) — 6 KB drift |
+| v2 §6.3 print stylesheet uses `a[href]::after` (correct) | grep `aref\]\|a\[href\]` in v2 spec | Lines 489, 517, 1487 all use `a[href]::after` — no `aref]` typo confirmed |
+| Both specs preserve all 202 skill names | (prior-turn audit) | 0 missing in either bundle |
+| Source markdown has 198/208/202 count discrepancy | `grep -c '^\| \*\*' source_document.md` and section splits | Confirmed: intro=198, summary=208, rows=202 |
+
+**Not executed in this environment**: running `npm run typecheck`, `npm run lint`, `npm run test`, `npm run build` against either spec's project skeleton. v2's Appendix D documents these commands' outputs, but I cannot independently reproduce them without the actual project directory (only the spec documents were provided). v2's claims about gate behavior are therefore Reasoned where they depend on runtime behavior, Verified where they depend on static file inspection.
+
+## Recommended Next Steps
+
+1. **Adopt `markdown-html-pipeline_SKILL-v2.md` as the canonical spec.** Archive v1 with a header pointing to v2. v2 is a strict superset, closes every documented v1 defect, and adds meaningful features (mobile drawer, back-to-top, copy buttons, reading-time, second template, print CSS, CI, pre-commit) with full TDD coverage.
+2. **Fix MED-3 (shared)**: Add a build-time source-markdown validation script that asserts `intro_count == sum(summary_counts) == count(table_rows)` and fails the build on mismatch. This is the only finding that affects both specs equally and the only one that would change the rendered output (the 198/208/202 discrepancy would surface and get fixed in the source).
+3. **Fix MED-4 (v2)**: Either rebuild `rendered_v2.html` from the current spec and update Appendix B/D's byte counts to match, or add a sentence to Appendix D disclosing that the verification ledger was captured at a different build snapshot.
+4. **Fix LOW-2 (v2)**: Replace the `entries.every(...)` pattern in §20 Pattern 4 with a stateful `Map<Element, boolean>` tracker to avoid active-section flicker on long pages.
+5. **Fix LOW-3 (v2)**: Either use a separate CJK reading-speed rate in `estimateReadingTime`, or document the ~20-30% underestimation for CJK-heavy documents in §9.3.
+6. **Optionally fix LOW-1 (v2)**: Tree-shake the inactive template's CSS out of the production bundle to shed ~2-4 KB.
+7. **Carry v2's discipline forward**: The pattern of "audit → remediate → re-specify with explicit (NEW in v2) annotations and a verification ledger" is the model for how to revise any skill spec. Future revisions should follow it.
+
+---
+
+https://chat.z.ai/s/0b085d16-72c6-4dd2-8af7-1a947e8a3e60 
