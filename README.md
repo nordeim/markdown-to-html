@@ -8,7 +8,6 @@
 ![License](https://img.shields.io/badge/license-private-lightgrey)
 
 > Transform any Markdown document into a polished, navigable, single-file web page — with zero backend and full WCAG 2.2 AA compliance.  
-> Turn any Markdown → polished, accessible, single-file web page.  
 
 ## Overview
 
