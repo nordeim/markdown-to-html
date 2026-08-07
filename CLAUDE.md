@@ -4,7 +4,7 @@ IMPORTANT: File is read fresh for every conversation. Be brief and practical.
 
 # Skills Catalog — Markdown-to-Web Pipeline
 
-A zero-backend React application that renders a Markdown document (`src/content/document.md`) as a polished, navigable, single-file web page. The build produces one self-contained `dist/index.html` (598 KB raw, 171 KB gzipped) with JS/CSS inlined — deployable to any static host.
+A zero-backend React application that renders a Markdown document (`src/content/document.md`) as a polished, navigable, single-file web page. The build produces one self-contained `dist/index.html` (598 KB raw, 165 KB gzipped) with JS/CSS inlined — deployable to any static host.
 
 **Tech Stack:** React 19 + Vite 8 + Tailwind CSS v4 (CSS-first `@theme`) + react-markdown + remark/rehype ecosystem + lucide-react (icons) + Playwright (accessibility)
 
@@ -14,7 +14,7 @@ A zero-backend React application that renders a Markdown document (`src/content/
 
 This project solves one problem: turn any Markdown file into a production-quality web page with zero backend, zero runtime dependencies, and full WCAG 2.2 AA compliance. The pipeline handles frontmatter parsing, heading-to-anchor linking, TOC extraction with active-section highlighting, badge annotation rendering, dark mode, responsive layout, and a single-file build output.
 
-The content is a catalog of 198 skills across 10 categories, but the pipeline is content-agnostic — replace `src/content/document.md` with any Markdown file and rebuild.
+The content is a catalog of 202 skills across 10 categories, but the pipeline is content-agnostic — replace `src/content/document.md` with any Markdown file and rebuild.
 
 ## Foundational Principles
 
@@ -266,7 +266,7 @@ Both `buildToc` and `enhanceMarkdown` consume `scanLines()` from `src/lib/fence.
 
 Edit **only** `src/templates/active.ts`:
 
-- Change the three import paths
+- Change the four import paths
 - Change `TEMPLATE_NAME`
 
 The template provides: theme CSS (side-effect import), component map overrides, layout component, default tag registry.
@@ -308,10 +308,13 @@ All text tokens meet WCAG 2.2 AA (≥ 4.5:1 contrast). Verified by axe-core.
 
 ### Z-Index Layer Map
 
-| z-index | Element                        | File           |
-| ------- | ------------------------------ | -------------- |
-| `z-50`  | Skip-to-content link (focused) | `SkipLink.tsx` |
-| `z-40`  | Sticky header                  | `layout.tsx`   |
+| z-index | Element                        | File                    |
+| ------- | ------------------------------ | ----------------------- |
+| `z-50`  | Skip-to-content link (focused) | `SkipLink.tsx`          |
+| `z-50`  | MobileNav drawer               | `MobileNav.tsx`         |
+| `z-40`  | Sticky header                  | `layout.tsx`            |
+| `z-30`  | Back-to-top button             | `BackToTop.tsx`         |
+| `z-10`  | CopyButton wrapper             | `MarkdownRenderer.tsx`  |
 
 ### Component Architecture
 
@@ -366,7 +369,7 @@ src/
     └── theme-storage.ts             # localStorage with try/catch + in-memory fallback
 ```
 
-**File counts:** 38 source files, 20 test files, 124 vitest tests + 2 Playwright tests = 126 total.
+**File counts:** 39 source files, 20 test files, 124 vitest tests + 2 Playwright tests = 126 total.
 
 ## Git & Version Control
 

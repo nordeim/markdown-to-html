@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A zero-backend React app that renders a Markdown document (`src/content/document.md`) as a polished, navigable, single-file web page. Output: `dist/index.html` with JS/CSS inlined (171 KB gzipped).
+A zero-backend React app that renders a Markdown document (`src/content/document.md`) as a polished, navigable, single-file web page. Output: `dist/index.html` with JS/CSS inlined (165 KB gzipped).
 
 ## Commands
 
@@ -125,7 +125,7 @@ Two templates are implemented: `technical` (default) and `editorial`.
 
 Edit **only** `src/templates/active.ts`:
 
-- Change the three import paths (`theme.css`, `components`, `layout`, `tags.json`)
+- Change the four import paths (`theme.css`, `components`, `layout`, `tags.json`)
 - Change `TEMPLATE_NAME`
 
 The template provides: theme CSS (side-effect import), component map overrides, layout component, default tag registry.

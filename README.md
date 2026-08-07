@@ -3,7 +3,7 @@
 <!-- Badges -->
 
 ![Version](https://img.shields.io/badge/version-1.1.0-blue)
-![Tests](https://img.shields.io/badge/tests-124%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-124%20vitest%20passing-brightgreen)
 ![Accessibility](https://img.shields.io/badge/accessibility-WCAG%202.2%20AA-green)
 ![Build](https://img.shields.io/badge/build-171%20KB%20gzipped-orange)
 ![License](https://img.shields.io/badge/license-private-lightgrey)
@@ -14,7 +14,7 @@
 
 **Markdown-to-HTML** is a zero-backend React application that renders a Markdown document as a production-quality web page. The pipeline handles frontmatter parsing, heading-to-anchor linking, TOC extraction with active-section highlighting, badge annotation rendering, reading-time estimation, dark mode, responsive layout (with mobile drawer), code-block copy buttons, back-to-top navigation, a print stylesheet, and a single-file build output.
 
-The content is a catalog of 198 skills across 10 categories, but the pipeline is content-agnostic — replace `src/content/document.md` with any Markdown file and rebuild.
+The content is a catalog of 202 skills across 10 categories, but the pipeline is content-agnostic — replace `src/content/document.md` with any Markdown file and rebuild.
 
 ## Key Features
 
@@ -30,7 +30,7 @@ The content is a catalog of 198 skills across 10 categories, but the pipeline is
 | 📋 **Copy Code**          | One-click clipboard copy on every code block (with `execCommand` fallback)                                               |
 | 🖨️ **Print Stylesheet**   | Hides chrome, forces light-mode colors, avoids page-breaks inside code/tables                                            |
 | ♿ **WCAG 2.2 AA**        | Automated accessibility gate via `axe-core` + Playwright — zero violations enforced                                      |
-| 📦 **Single-File Build**  | `vite-plugin-singlefile` inlines JS + CSS into one `dist/index.html` (171 KB gzipped)                                    |
+| 📦 **Single-File Build**  | `vite-plugin-singlefile` inlines JS + CSS into one `dist/index.html` (165 KB gzipped)                                    |
 | 🎨 **Template System**    | Two templates (`technical`, `editorial`) swappable via one file edit                                                     |
 | 🧪 **124 Tests**          | Unit, integration, accessibility, and bundle-size tests — all green                                                      |
 | 🔧 **CI + Pre-Commit**    | GitHub Actions workflow + Husky pre-commit hook with lint-staged                                                         |
@@ -65,7 +65,7 @@ npm run preview
 npm run typecheck    # Should pass with zero errors
 npm run lint         # Should pass with zero warnings
 npm run test         # Should pass 124 tests
-npm run build        # Should produce dist/index.html (~171 KB gzipped)
+npm run build        # Should produce dist/index.html (~165 KB gzipped)
 ```
 
 ## How to Use the Pipeline

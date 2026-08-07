@@ -1,6 +1,6 @@
 # Skills Catalog
 
-> **198 skills** organized into 10 categories. Each entry shows the skill name and a concise description of what it does and when to use it.
+> **202 skills** organized into 10 categories. Each entry shows the skill name and a concise description of what it does and when to use it.
 
 ---
 
