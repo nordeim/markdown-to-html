@@ -12,7 +12,7 @@
 
 ## Overview
 
-Skills Catalog is a zero-backend React application that renders a Markdown document as a production-quality web page. The pipeline handles frontmatter parsing, heading-to-anchor linking, TOC extraction with active-section highlighting, badge annotation rendering, dark mode, responsive layout, and a single-file build output.
+**Markdown-to-HTML** is a zero-backend React application that renders a Markdown document as a production-quality web page. The pipeline handles frontmatter parsing, heading-to-anchor linking, TOC extraction with active-section highlighting, badge annotation rendering, dark mode, responsive layout, and a single-file build output.
 
 The content is a catalog of 198 skills across 10 categories, but the pipeline is content-agnostic — replace `src/content/document.md` with any Markdown file and rebuild.
 
