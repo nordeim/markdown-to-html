@@ -31,6 +31,25 @@ tags:
 
 ---
 
+## What's New in v2.1
+
+v2.1.0 is a **focused delta** on v2.0.0 — not a rewrite. It fixes 3 bugs, adds 1 new quality gate, and removes 1 source of build noise. The v2.0.0 content is preserved intact; this section is the map of what changed.
+
+| Category | Change | Where |
+|----------|--------|-------|
+| **New gate** | Gate 0: `lint:source` — validates source-markdown internal consistency (intro claim == summary table == actual rows) | §13, §9.2 |
+| **Bug fix** | `IntersectionObserver` partial-callback bug — active section flickered/cleared while visible. Fixed with stateful `Map<id, boolean>` reducer | §20 Pattern 16, §17 Lesson 25 |
+| **Bug fix** | CJK reading-time overestimate (~25%) — single 200 wpm rate applied to CJK. Fixed with separate Latin 200 wpm + CJK 300 cpm, max-of | §9.3, §20 Pattern 19, §17 Lesson 27 |
+| **Bug fix** | Pre-hydration `<title>` flash — static placeholder shown until React hydrates. Fixed with build-time `transformIndexHtml` plugin | §9.4, §20 Pattern 17, §17 Lesson 28 |
+| **Cleanup** | Redundant `inlineDynamicImports` build warning removed | §17 Lesson 29 |
+| **New modules** | `src/lib/active-section.ts`, `src/lib/extract-title.ts`, `src/lib/validate-source.ts` | §5, §9.2, §9.4 |
+| **New tests** | +21 unit tests (validate-source: 6, active-section: 6, extract-title: 7, reading-time: +2) | §27 |
+| **New ADRs** | ADR-9 (why a gate not a test), ADR-10 (Map vs Set), ADR-11 (max vs sum), ADR-12 (build-time plugin) | §28 Appendix A |
+
+**Unchanged from v2.0:** §6 (design system), §7 (component architecture), §10 (accessibility), §11 (config surface), §12 (template system), §22 (breakpoints), §23 (z-index), §24 (colors), §26 (component props).
+
+---
+
 ## Part 1 — Remediation Context (Why v2.1 Exists)
 
 v2.0.0 of this skill was technically correct in its patterns and the codebase it described passed all 8 documented quality gates. However, a subsequent spec-vs-spec audit (`docs/v2_rendering_comparison_3.md`) identified 10 outstanding issues that the v2.0 remediation had not addressed — issues that were either inherited from v1, introduced by the v2.0 remediation itself, or newly discoverable by examining the built artifacts against the spec.
@@ -669,8 +688,6 @@ Two jobs run on every push and PR to `main`/`master`:
 - **quality**: Node 22, `npm ci`, lint:source → typecheck → lint → lint:format → lint:markdown → test:coverage → build → test:bundle-size. Uploads coverage + dist artifacts.
 - **accessibility**: Node 22, `npm ci`, build, `npx playwright install chromium --with-deps`, `npm run a11y`. Uploads Playwright report.
 
-> **Note:** The CI workflow must be updated to include `npm run lint:source` as the first step in the `quality` job. This is a documented follow-up; the gate exists locally but the CI YAML at the time of writing does not yet invoke it.
-
 #### 13.3 Pre-commit hook (`.husky/pre-commit`)
 
 Runs `npx lint-staged` (ESLint --fix + Prettier --write + markdownlint --fix on staged files) followed by `npm run typecheck`. A failure blocks the commit.
@@ -1279,7 +1296,7 @@ Every claim in this document traces to an executed command:
 | `documentTitlePlugin` wired | `rg "documentTitlePlugin" vite.config.ts` | 2 matches (definition + plugins array) |
 | `inlineDynamicImports` removed | `rg "inlineDynamicImports" vite.config.ts` | 0 matches |
 | Source counts consistent | `node scripts/validate-source.mjs` | 202 / 202 / 202 |
-| Built `<title>` is correct | `grep -o '<title>[^<]*</title>' dist/index.html` | `<title>Skills Catalog</title>` (the document's H1) |
+| Built `<title>` is correct | `grep -o '<title>[^<]*</title>' dist/index.html` | `<title>Skills Catalog</title>` (the document's H1 — provably different from the static `<title>Document</title>` placeholder in `index.html`, confirming the build-time plugin ran) |
 
 #### Appendix D: Remediation summary (v2.1)
 
@@ -1296,7 +1313,7 @@ The v2.1 skill captures the result of a 10-issue remediation (see `docs/audit/IM
 - O-7: 130 markdownlint errors in `docs/`. Fixed by excluding reference/audit docs from globs.
 - O-8: Redundant `inlineDynamicImports` build warning. Removed.
 - O-9: v2 spec build-size claim drift. v2.1 Appendix B uses actual verified byte counts.
-- O-10: No source-validation gate. Added `lint:source` (Gate 0).
+- O-10: No source-validation gate. Added `lint:source` (Gate 0). CI workflow updated to invoke it as the first step in the `quality` job.
 
 **What was deferred (with justification):**
 
@@ -1306,7 +1323,7 @@ The v2.1 skill captures the result of a 10-issue remediation (see `docs/audit/IM
 - `gray-matter` swap for real YAML — current flat-YAML parser is sufficient.
 - Offline font bundling — documented as an extension path.
 - `theme-storage.ts` storage key hardcoded — single-instance deployment is the documented use case.
-- CI workflow update to invoke `lint:source` — the gate exists locally; the CI YAML is a documented follow-up.
+- ~~CI workflow update to invoke `lint:source`~~ — **done**. The `quality` job now runs `npm run lint:source` as its first step (immediately after `npm ci`, before typecheck).
 
 #### Appendix E: Glossary
 
