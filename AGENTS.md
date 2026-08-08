@@ -2,7 +2,7 @@
 
 ## What This Is
 
-A zero-backend React app that renders a Markdown document (`src/content/document.md`) as a polished, navigable, single-file web page. Output: `dist/index.html` with JS/CSS inlined (165 KB gzipped).
+A zero-backend React app that renders a Markdown document (`src/content/document.md`) as a polished, navigable, single-file web page. Output: `dist/index.html` with JS/CSS inlined (~171 KB gzipped).
 
 ## Commands
 
@@ -19,6 +19,7 @@ npm run test:integration # Integration tests only
 npm run test:coverage    # Vitest with coverage (enforces 80/75/80/80 thresholds)
 npm run test:bundle-size # Bundle < 250KB gzipped gate
 
+npm run lint:source      # Source-markdown internal-consistency gate (intro == summary == rows)
 npm run lint             # ESLint (flat config, zero-warning policy)
 npm run lint:format      # Prettier check
 npm run lint:markdown    # markdownlint-cli2
@@ -26,9 +27,10 @@ npm run lint:markdown    # markdownlint-cli2
 npm run a11y             # Accessibility (Playwright + axe) — WCAG 2.2 AA gate
 ```
 
-## Quality Gates (8 gates, run in order)
+## Quality Gates (9 gates, run in order)
 
 ```bash
+npm run lint:source      # Gate 0: source-markdown internal consistency (intro == summary == rows)
 npm run typecheck        # Gate 1: TypeScript strict
 npm run lint             # Gate 2: ESLint
 npm run lint:format      # Gate 3: Prettier
@@ -36,10 +38,11 @@ npm run lint:markdown    # Gate 4: markdownlint
 npm run test             # Gate 5: vitest (unit + integration + bundle-size)
 npm run test:coverage    # Gate 6: coverage thresholds (80/75/80/80)
 npm run build            # Gate 7: vite production build
-npm run a11y             # Gate 8: axe-core WCAG 2.2 AA (requires `npx playwright install chromium`)
+npm run test:bundle-size # Gate 8: dist/index.html < 250 KB gzipped
+npm run a11y             # Gate 9: axe-core WCAG 2.2 AA (requires `npx playwright install chromium`)
 ```
 
-The CI workflow (`.github/workflows/ci.yml`) runs gates 1–7 on every push/PR. The a11y gate runs in a separate CI job.
+The CI workflow (`.github/workflows/ci.yml`) runs gates 0–8 on every push/PR. The a11y gate runs in a separate CI job. Gate 0 is new in v2.1 — it catches source-document count drift (the 198/208/202 mismatch that persisted across v1→v2) at build time.
 
 ## Test Runner Split
 
@@ -53,7 +56,7 @@ The CI workflow (`.github/workflows/ci.yml`) runs gates 1–7 on every push/PR. 
 - `tests/accessibility/**` is **excluded from vitest** — it cannot run there.
 - Playwright browsers must be installed first: `npx playwright install chromium`
 
-## Test Inventory (124 tests across 20 files)
+## Test Inventory (145 vitest tests across 23 files + 2 Playwright)
 
 | Suite              | File                          | Tests          |
 | ------------------ | ----------------------------- | -------------- |
@@ -64,7 +67,10 @@ The CI workflow (`.github/workflows/ci.yml`) runs gates 1–7 on every push/PR. 
 | Unit               | `tags.test.ts`                | 6              |
 | Unit               | `slug-parity.test.ts`         | 9              |
 | Unit               | `config.test.ts`              | 14             |
-| Unit               | `reading-time.test.ts`        | 8              |
+| Unit               | `reading-time.test.ts`        | 10             |
+| Unit               | `validate-source.test.ts`     | 6 (NEW v2.1)   |
+| Unit               | `active-section.test.ts`      | 6 (NEW v2.1)   |
+| Unit               | `extract-title.test.ts`       | 7 (NEW v2.1)   |
 | Integration        | `markdown-rendering.test.tsx` | 4              |
 | Integration        | `code-block.test.tsx`         | 5              |
 | Integration        | `images.test.tsx`             | 5              |
@@ -77,7 +83,7 @@ The CI workflow (`.github/workflows/ci.yml`) runs gates 1–7 on every push/PR. 
 | Integration        | `copy-button.test.tsx`        | 4              |
 | Integration        | `editorial-template.test.tsx` | 5              |
 | Performance        | `bundle-size.test.ts`         | 1              |
-| **Total (vitest)** |                               | **124**        |
+| **Total (vitest)** |                               | **145**        |
 | Accessibility      | `axe.test.ts`                 | 2 (Playwright) |
 
 ## Critical Architecture
@@ -89,6 +95,7 @@ document.md → parseDocument() → { frontmatter, body }
     body → enhanceMarkdown() → enhanced string (badge backtick-wrapping)
     body → buildToc()         → TocItem[] (H2–H4 extraction)
     body → estimateReadingTime() → "N min read"
+    body → extractDocumentTitle() → <title> (build-time, via Vite plugin)
     enhanced → MarkdownRenderer → React elements (react-markdown)
 ```
 
@@ -151,7 +158,7 @@ Dark mode is applied via `data-theme="dark"` on `<html>`, **not** Tailwind `dark
 
 ### Reading Time
 
-`estimateReadingTime(body)` returns a string like `"5 min read"`. It strips fenced code blocks, counts Latin words + CJK characters (each CJK char = 1 word), divides by 200 wpm, rounds up.
+`estimateReadingTime(body)` returns a string like `"5 min read"`. It strips fenced code blocks, counts Latin words and CJK characters separately, then takes the max of `ceil(latinCount / 200)` and `ceil(cjkCount / 300)`. The separate CJK rate (300 cpm) reflects that native Chinese reading speed is ~250–300 chars/min, slower per character than English. Taking the max (instead of summing) avoids double-counting mixed-script content.
 
 ### Code Block Copy Button
 
@@ -200,34 +207,38 @@ Verified by `npm run test:coverage`. The CI workflow enforces this.
 
 ## Key File Map
 
-| Path                                  | Purpose                                                             |
-| ------------------------------------- | ------------------------------------------------------------------- |
-| `src/App.tsx`                         | Layout assembly + memoized pipeline state + active-section observer |
-| `src/main.tsx`                        | Entry: StrictMode + ErrorBoundary + createRoot                      |
-| `src/content/document.md`             | Input markdown (the catalog)                                        |
-| `src/templates/active.ts`             | Template switching (single edit point)                              |
-| `src/templates/technical/`            | Technical template (three-column, cool palette)                     |
-| `src/templates/editorial/`            | Editorial template (single-column, warm serif)                      |
-| `src/templates/{name}/theme.css`      | Design tokens (two-layer dark mode + print)                         |
-| `src/lib/fence.ts`                    | Fence-aware line scanner (shared by TOC + enhance + reading-time)   |
-| `src/lib/enhance.ts`                  | Badge backtick-wrapping preprocessor                                |
-| `src/lib/toc.ts`                      | H2–H4 TOC extraction with slug reservation                          |
-| `src/lib/tags.ts`                     | Registry validation + badge resolver                                |
-| `src/lib/frontmatter.ts`              | YAML frontmatter parse + strip                                      |
-| `src/lib/reading-time.ts`             | Reading-time estimator (200 wpm, CJK-aware)                         |
-| `src/lib/config.ts`                   | Optional config validator (MarkdownToWebConfig)                     |
-| `src/components/MarkdownRenderer.tsx` | react-markdown renderer + components map + CodeBlockWrapper         |
-| `src/components/TableOfContents.tsx`  | Recursive TOC with active-section styling                           |
-| `src/components/Badge.tsx`            | Tag-aware badge chip (5 accent steps)                               |
-| `src/components/ErrorBoundary.tsx`    | Class component render error catcher                                |
-| `src/components/ErrorFallback.tsx`    | Presentational fallback UI with reload                              |
-| `src/components/SkipLink.tsx`         | Accessible skip-to-content                                          |
-| `src/components/ThemeToggle.tsx`      | Light/dark/system toggle (lucide icons + aria-live)                 |
-| `src/components/BackToTop.tsx`        | Floating scroll-to-top button                                       |
-| `src/components/MobileNav.tsx`        | Mobile TOC drawer (dialog + focus trap)                             |
-| `src/components/CopyButton.tsx`       | Clipboard copy with execCommand fallback                            |
-| `src/utils/cn.ts`                     | `clsx` + `tailwind-merge`                                           |
-| `src/utils/theme-storage.ts`          | `localStorage` with try/catch fallback                              |
+| Path                                  | Purpose                                                                |
+| ------------------------------------- | ---------------------------------------------------------------------- |
+| `src/App.tsx`                         | Layout assembly + memoized pipeline state + active-section observer    |
+| `src/main.tsx`                        | Entry: StrictMode + ErrorBoundary + createRoot                         |
+| `src/content/document.md`             | Input markdown (the catalog)                                           |
+| `src/templates/active.ts`             | Template switching (single edit point)                                 |
+| `src/templates/technical/`            | Technical template (three-column, cool palette)                        |
+| `src/templates/editorial/`            | Editorial template (single-column, warm serif)                         |
+| `src/templates/{name}/theme.css`      | Design tokens (two-layer dark mode + print)                            |
+| `src/lib/fence.ts`                    | Fence-aware line scanner (shared by TOC + enhance + reading-time)      |
+| `src/lib/enhance.ts`                  | Badge backtick-wrapping preprocessor                                   |
+| `src/lib/toc.ts`                      | H2–H4 TOC extraction with slug reservation                             |
+| `src/lib/tags.ts`                     | Registry validation + badge resolver                                   |
+| `src/lib/frontmatter.ts`              | YAML frontmatter parse + strip                                         |
+| `src/lib/reading-time.ts`             | Reading-time estimator (Latin 200 wpm, CJK 300 cpm, max-of)            |
+| `src/lib/config.ts`                   | Optional config validator (MarkdownToWebConfig)                        |
+| `src/lib/active-section.ts`           | Pure reducer for IntersectionObserver active-section tracking          |
+| `src/lib/extract-title.ts`            | Build-time document-title extractor (frontmatter title or first H1)    |
+| `src/lib/validate-source.ts`          | Source-markdown count-consistency validator (intro == summary == rows) |
+| `scripts/validate-source.mjs`         | CLI wrapper for `lint:source` gate                                     |
+| `src/components/MarkdownRenderer.tsx` | react-markdown renderer + components map + CodeBlockWrapper            |
+| `src/components/TableOfContents.tsx`  | Recursive TOC with active-section styling                              |
+| `src/components/Badge.tsx`            | Tag-aware badge chip (5 accent steps)                                  |
+| `src/components/ErrorBoundary.tsx`    | Class component render error catcher                                   |
+| `src/components/ErrorFallback.tsx`    | Presentational fallback UI with reload                                 |
+| `src/components/SkipLink.tsx`         | Accessible skip-to-content                                             |
+| `src/components/ThemeToggle.tsx`      | Light/dark/system toggle (lucide icons + aria-live)                    |
+| `src/components/BackToTop.tsx`        | Floating scroll-to-top button                                          |
+| `src/components/MobileNav.tsx`        | Mobile TOC drawer (dialog + focus trap)                                |
+| `src/components/CopyButton.tsx`       | Clipboard copy with execCommand fallback                               |
+| `src/utils/cn.ts`                     | `clsx` + `tailwind-merge`                                              |
+| `src/utils/theme-storage.ts`          | `localStorage` with try/catch fallback                                 |
 
 ## Pre-Commit Hook
 
@@ -248,6 +259,8 @@ Triggers: push and PR to main/master. Concurrency cancels in-progress runs.
 - **`index.html` `lang="en"` is hardcoded.** For non-English documents, update `index.html` or set `lang` dynamically.
 - **`theme-storage.ts` storage key is hardcoded to `"theme"`.** Two markdown-to-web instances on the same domain collide. Namespace if needed.
 - **`tests/accessibility/**` requires `npx playwright install chromium`** before the first `npm run a11y` run.
+- **The inactive template's utility-class CSS leaks into the production bundle.** When the `technical` template is active, Tailwind v4's content scanner still sees `text-5xl` (used by `editorial/layout.tsx`) and generates the rule (~1–2 KB). Editorial color tokens (`--bg`, `--accent`, etc.) do NOT leak — only utility class definitions. Excluding `editorial/**` from the scan would break template switching, so this is an accepted trade-off of single-file portability.
+- **`index.html` `<title>` is rewritten at build time** by the `documentTitlePlugin` in `vite.config.ts`. The static placeholder (`<title>Skills Catalog</title>`) is replaced with the document's frontmatter title or first H1. A runtime `useEffect` in `App.tsx` keeps it in sync if frontmatter changes after hydration.
 
 ## Don't
 

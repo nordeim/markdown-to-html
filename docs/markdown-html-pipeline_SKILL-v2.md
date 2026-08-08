@@ -20,6 +20,23 @@ tags:
   - ci
 ---
 
+> **⚠ SUPERSEDED.** This is version 2.0.0 of the skill, preserved as a historical
+> reference. The canonical current version is
+> [`docs/markdown-html-pipeline_SKILL-v2.1.md`](./markdown-html-pipeline_SKILL-v2.1.md),
+> which addresses the outstanding issues identified in the v2.0 spec-vs-spec
+> audit (`docs/v2_rendering_comparison_3.md`):
+>
+> - Source-markdown count mismatch (198/208/202) — fixed and prevented by a new `lint:source` gate.
+> - `IntersectionObserver` partial-callback bug — fixed with a stateful `Map<id, boolean>` reducer.
+> - CJK reading-time underestimation — fixed with a separate 300 cpm rate (max-of with Latin 200 wpm).
+> - Pre-hydration title flash — fixed with a build-time `transformIndexHtml` plugin.
+> - Redundant `inlineDynamicImports` build warning — removed.
+> - `CLAUDE.md` prettier drift + 130 markdownlint errors in `docs/` — fixed.
+>
+> Use v2.1 for new work. This document is kept for traceability.
+
+---
+
 # markdown-to-web — Pipeline Skill v2.0.0
 
 **Document version:** 2.0.0

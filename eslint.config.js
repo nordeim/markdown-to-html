@@ -109,4 +109,24 @@ export default tseslint.config(
       "@typescript-eslint/no-explicit-any": "off",
     },
   },
+
+  // Build scripts (Node ESM) — Node globals, no DOM. Linted but with relaxed
+  // rules appropriate for one-off CLI utilities.
+  {
+    files: ["scripts/**/*.{mjs,js,cjs}"],
+    languageOptions: {
+      globals: {
+        process: "readonly",
+        console: "readonly",
+        Buffer: "readonly",
+        __dirname: "readonly",
+        URL: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-explicit-any": "off",
+    },
+  },
 );

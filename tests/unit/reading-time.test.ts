@@ -31,6 +31,25 @@ describe("estimateReadingTime", () => {
     expect(estimateReadingTime(text)).toBe("2 min read");
   });
 
+  it("uses a separate, slower CJK reading rate (300 cpm) — 900 CJK chars → 3 min read", () => {
+    // CJK reading speed is ~250-300 chars/min for native readers; we use 300.
+    // 900 / 300 = 3 min exactly. Under the old single-rate logic (200 wpm)
+    // this would have been 5 min — an overestimate. The new logic takes the
+    // max of (latinMinutes, cjkMinutes) so the larger of the two rates wins
+    // when content is mixed.
+    const text = "字".repeat(900);
+    expect(estimateReadingTime(text)).toBe("3 min read");
+  });
+
+  it("mixed Latin + CJK content uses the slower of the two estimates", () => {
+    // 1000 Latin words → 5 min at 200 wpm.
+    // 300 CJK chars → 1 min at 300 cpm.
+    // max(5, 1) = 5 min.
+    const latin = Array.from({ length: 1000 }, (_, i) => `word${i}`).join(" ");
+    const cjk = "字".repeat(300);
+    expect(estimateReadingTime(`${latin}\n\n${cjk}`)).toBe("5 min read");
+  });
+
   it("ignores markdown syntax characters when counting words", () => {
     // 100 words wrapped in markdown headers, bold, links — should still be ~1 min
     const text = `## ${"word ".repeat(50)}\n\n**${"word ".repeat(50)}**`;

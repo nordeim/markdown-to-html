@@ -19,19 +19,27 @@
     "MD047": true,
     "MD050": true,
   },
-  "globs": [
-    "**/*.md",
-    "!node_modules/**",
-    "!dist/**",
-    "!test-results/**",
-    "!docs/source_SKILL.md",
-    "!docs/markdown-html-pipeline_SKILL.md",
-    "!docs/markdown-html-pipeline_SKILL-v1.md",
-    "!docs/Project_Architecture_Document.md",
-    "!docs/prompt-to-improve.md",
-    "!docs/audit/**",
-    "!docs/status.md",
-    "!coverage/**",
-    "!docs/markdown-html-pipeline_SKILL-v2.md",
+  // Positive globs only. Exclusions MUST live in "ignores" below, never as
+  // "!" negations here.
+  //
+  // Why: lint-staged passes ABSOLUTE file paths to markdownlint-cli2, which
+  // appends them to these globs. In globby, a relative negation ("!docs/**")
+  // cannot cancel an absolute positive match ("/repo/docs/foo.md"), so "!"
+  // exclusions silently stop working inside the pre-commit hook while still
+  // appearing to work for `npm run lint:markdown` (which passes no CLI args).
+  //
+  // "ignores" is immune: markdownlint-cli2 applies it AFTER file enumeration,
+  // via micromatch against base-dir-relative paths, so both invocation paths
+  // agree. See removeIgnoredFiles()/lintFiles() in markdownlint-cli2.js.
+  "globs": ["**/*.md"],
+  "ignores": [
+    "node_modules/**",
+    "dist/**",
+    "coverage/**",
+    "test-results/**",
+    "playwright-report/**",
+    // Authored prose and archived deliverables are exempt from lint. This
+    // subsumes the former per-file "!docs/<name>.md" list and "docs/audit/**".
+    "docs/**",
   ],
 }

@@ -24,16 +24,17 @@ The content is a catalog of 202 skills across 10 categories, but the pipeline is
 | 🔗 **TOC + Navigation**   | Auto-generated table of contents with active-section highlighting via `IntersectionObserver`                             |
 | 🏷️ **Badge System**       | Inline annotations (`**Tag:** value`) render as colored badge chips via backtick-wrapping pipeline                       |
 | 🌗 **Dark Mode**          | Two-layer CSS token pattern — system preference + manual toggle with `localStorage` persistence + OS-change subscription |
-| ⏱️ **Reading Time**       | Prose-word count (200 wpm) with CJK-character awareness                                                                  |
+| ⏱️ **Reading Time**       | Latin 200 wpm + CJK 300 cpm (max-of, avoids double-counting mixed scripts)                                               |
 | 📱 **Mobile Drawer**      | Slide-in TOC drawer on screens < `lg`, with focus trap, Escape-to-close, and body scroll lock                            |
 | 🔝 **Back to Top**        | Floating scroll-to-top button that respects `prefers-reduced-motion`                                                     |
 | 📋 **Copy Code**          | One-click clipboard copy on every code block (with `execCommand` fallback)                                               |
 | 🖨️ **Print Stylesheet**   | Hides chrome, forces light-mode colors, avoids page-breaks inside code/tables                                            |
 | ♿ **WCAG 2.2 AA**        | Automated accessibility gate via `axe-core` + Playwright — zero violations enforced                                      |
-| 📦 **Single-File Build**  | `vite-plugin-singlefile` inlines JS + CSS into one `dist/index.html` (165 KB gzipped)                                    |
+| 📦 **Single-File Build**  | `vite-plugin-singlefile` inlines JS + CSS into one `dist/index.html` (~171 KB gzipped)                                   |
 | 🎨 **Template System**    | Two templates (`technical`, `editorial`) swappable via one file edit                                                     |
-| 🧪 **124 Tests**          | Unit, integration, accessibility, and bundle-size tests — all green                                                      |
+| 🧪 **145 Tests**          | Unit, integration, accessibility, and bundle-size tests — all green                                                      |
 | 🔧 **CI + Pre-Commit**    | GitHub Actions workflow + Husky pre-commit hook with lint-staged                                                         |
+| 🔍 **Source Validation**  | Build-time gate asserts the markdown's intro count == summary table == actual rows (catches data drift)                  |
 
 ## Quick Start
 
@@ -63,9 +64,10 @@ npm run preview
 
 ```bash
 npm run typecheck    # Should pass with zero errors
+npm run lint:source  # Should report 202 / 202 / 202 (intro == summary == rows)
 npm run lint         # Should pass with zero warnings
-npm run test         # Should pass 124 tests
-npm run build        # Should produce dist/index.html (~165 KB gzipped)
+npm run test         # Should pass 145 tests
+npm run build        # Should produce dist/index.html (~171 KB gzipped)
 ```
 
 ## How to Use the Pipeline
@@ -286,11 +288,11 @@ markdown-to-html/
 ```bash
 # All vitest tests (unit + integration + bundle-size)
 npm run test
-# → 124 tests across 20 files
+# → 145 tests across 23 files
 
 # Unit tests only (pure functions in src/lib/)
 npm run test:unit
-# → 68 tests across 8 files
+# → 89 tests across 11 files
 
 # Integration tests only (full pipeline rendering)
 npm run test:integration
@@ -313,9 +315,10 @@ npm run a11y
 
 ## Quality Gates
 
-The project enforces eight quality gates. The CI workflow runs them on every push and PR.
+The project enforces nine quality gates. The CI workflow runs them on every push and PR.
 
 ```bash
+npm run lint:source      # 0. Source-markdown internal consistency (intro == summary == rows)
 npm run typecheck        # 1. TypeScript strict
 npm run lint             # 2. ESLint (zero-warning policy)
 npm run lint:format      # 3. Prettier
@@ -323,7 +326,8 @@ npm run lint:markdown    # 4. markdownlint
 npm run test             # 5. vitest (unit + integration + bundle-size)
 npm run test:coverage    # 6. Coverage thresholds
 npm run build            # 7. Production build
-npm run a11y             # 8. axe-core WCAG 2.2 AA (Playwright)
+npm run test:bundle-size # 8. dist/index.html < 250 KB gzipped
+npm run a11y             # 9. axe-core WCAG 2.2 AA (Playwright)
 ```
 
 ## Design System

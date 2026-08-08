@@ -306,11 +306,11 @@
 | 4   | AI / ML / Multimodal SDK Skills                | 15      |
 | 5   | Testing, QA & Performance                      | 23      |
 | 6   | Code Quality, Security & Architecture          | 13      |
-| 7   | Planning, Workflow & Project Management        | 23      |
-| 8   | Documentation & Content Creation               | 19      |
+| 7   | Planning, Workflow & Project Management        | 21      |
+| 8   | Documentation & Content Creation               | 17      |
 | 9   | Career, Learning & Personal Development        | 11      |
-| 10  | DevOps, Infrastructure & External Integrations | 11      |
-|     | **Total**                                      | **208** |
+| 10  | DevOps, Infrastructure & External Integrations | 9       |
+|     | **Total**                                      | **202** |
 
 ---
 

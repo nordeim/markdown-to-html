@@ -92,11 +92,12 @@ npx playwright install chromium  # Required before first a11y test
 | `npm run build`            | Production build → `dist/index.html`                |
 | `npm run preview`          | Serve `dist/` on :4173                              |
 | `npm run typecheck`        | `tsc --noEmit` (strict)                             |
+| `npm run lint:source`      | Source-markdown internal-consistency gate           |
 | `npm run lint`             | ESLint (flat config, zero-warning policy)           |
 | `npm run lint:format`      | Prettier check                                      |
 | `npm run lint:markdown`    | markdownlint-cli2                                   |
 | `npm run test`             | All vitest tests (unit + integration + bundle-size) |
-| `npm run test:unit`        | Unit tests only (68 tests across 8 files)           |
+| `npm run test:unit`        | Unit tests only (89 tests across 11 files)          |
 | `npm run test:integration` | Integration tests only (55 tests across 10 files)   |
 | `npm run test:coverage`    | Vitest with coverage (enforces 80/75/80/80)         |
 | `npm run test:bundle-size` | Bundle < 250 KB gzipped gate (1 test)               |
@@ -125,11 +126,11 @@ npx playwright test tests/accessibility/axe.test.ts  # Single a11y test file
 
 ### Test Pyramid
 
-- **Unit Tests (~55%)**: Pure functions in `lib/` — fence scanner, enhance preprocessor, TOC extraction, frontmatter parsing, tag registry, slug parity, config validator, reading-time estimator. 68 tests across 8 files.
-- **Integration Tests (~45%)**: Full pipeline rendering with `react-markdown` — badges, external links, tables, malformed markdown, code blocks, images, task lists, theme toggle, error boundary, back-to-top, mobile nav, copy button, editorial template, dev warnings. 55 tests across 10 files.
+- **Unit Tests (~60%)**: Pure functions in `lib/` — fence scanner, enhance preprocessor, TOC extraction, frontmatter parsing, tag registry, slug parity, config validator, reading-time estimator, source-document validator, active-section reducer, document-title extractor. 89 tests across 11 files.
+- **Integration Tests (~38%)**: Full pipeline rendering with `react-markdown` — badges, external links, tables, malformed markdown, code blocks, images, task lists, theme toggle, error boundary, back-to-top, mobile nav, copy button, editorial template, dev warnings. 55 tests across 10 files.
 - **Accessibility**: axe-core via Playwright — WCAG 2.2 AA in light and dark modes. 2 tests in 1 file.
 - **Performance**: Bundle size gate (< 250 KB gzipped). 1 test.
-- **Total**: 124 vitest tests + 2 Playwright tests = 126.
+- **Total**: 145 vitest tests + 2 Playwright tests = 147.
 
 ### Test Standards
 
@@ -150,9 +151,10 @@ npx playwright test tests/accessibility/axe.test.ts  # Single a11y test file
 ### Linting & Formatting
 
 ```bash
-npm run lint              # ESLint (flat config, zero-warning policy)
-npm run lint:format       # Prettier check
-npm run lint:markdown     # markdownlint-cli2
+npm run lint:source      # Source-markdown internal-consistency gate (intro == summary == rows)
+npm run lint             # ESLint (flat config, zero-warning policy)
+npm run lint:format      # Prettier check
+npm run lint:markdown    # markdownlint-cli2
 ```
 
 - ESLint 9 with flat config (`eslint.config.js`).
@@ -246,7 +248,7 @@ The bridge between markdown text and React components:
 - Uses a stack algorithm for correct nesting: the `while` loop pops until the top's level < current's level.
 - Slug parity between `github-slugger` (TOC) and `rehype-slug` (rendered headings) is verified by `slug-parity.test.ts`.
 - `headingText()` normalizes heading text: strips backticks, images → alt text, links → link text, trims.
-- Active-section highlighting uses `IntersectionObserver` with `rootMargin: "-80px 0px -80% 0px"`.
+- Active-section highlighting uses `IntersectionObserver` with `rootMargin: "-80px 0px -80% 0px"`. The callback maintains a `Map<string, boolean>` of element-id → isIntersecting (updated on every callback) and derives `activeSlug` as the first entry with `true`. This is critical because `IntersectionObserver` callbacks fire with a _partial_ list of changed entries, not every observed element — a naive `entries.every(!isIntersecting)` check would incorrectly clear the active section when a leaving section's entry is the only one in the callback. See `src/lib/active-section.ts` and `tests/unit/active-section.test.ts`.
 
 ### github-slugger Import
 
@@ -308,13 +310,13 @@ All text tokens meet WCAG 2.2 AA (≥ 4.5:1 contrast). Verified by axe-core.
 
 ### Z-Index Layer Map
 
-| z-index | Element                        | File                    |
-| ------- | ------------------------------ | ----------------------- |
-| `z-50`  | Skip-to-content link (focused) | `SkipLink.tsx`          |
-| `z-50`  | MobileNav drawer               | `MobileNav.tsx`         |
-| `z-40`  | Sticky header                  | `layout.tsx`            |
-| `z-30`  | Back-to-top button             | `BackToTop.tsx`         |
-| `z-10`  | CopyButton wrapper             | `MarkdownRenderer.tsx`  |
+| z-index | Element                        | File                   |
+| ------- | ------------------------------ | ---------------------- |
+| `z-50`  | Skip-to-content link (focused) | `SkipLink.tsx`         |
+| `z-50`  | MobileNav drawer               | `MobileNav.tsx`        |
+| `z-40`  | Sticky header                  | `layout.tsx`           |
+| `z-30`  | Back-to-top button             | `BackToTop.tsx`        |
+| `z-10`  | CopyButton wrapper             | `MarkdownRenderer.tsx` |
 
 ### Component Architecture
 
@@ -355,8 +357,11 @@ src/
 │   ├── toc.ts                       # H2–H4 outline extraction with slug reservation
 │   ├── tags.ts                      # Registry validation + collision detection + resolver
 │   ├── frontmatter.ts               # YAML frontmatter parse + strip (BOM-safe, CRLF-safe)
-│   ├── reading-time.ts              # Prose-word reading-time estimator (200 wpm, CJK-aware)
-│   └── config.ts                    # Optional MarkdownToWebConfig validator
+│   ├── reading-time.ts              # Reading-time estimator (Latin 200 wpm, CJK 300 cpm, max-of)
+│   ├── config.ts                    # Optional MarkdownToWebConfig validator
+│   ├── active-section.ts            # Pure reducer for IntersectionObserver active-section tracking
+│   ├── extract-title.ts             # Build-time document-title extractor (frontmatter title or first H1)
+│   └── validate-source.ts           # Source-markdown count-consistency validator
 ├── types/
 │   ├── tag.ts                       # TagDefinition, TagRegistry, ResolvedBadge (canonical home)
 │   ├── toc.ts                       # TocItem (canonical home)
@@ -369,7 +374,7 @@ src/
     └── theme-storage.ts             # localStorage with try/catch + in-memory fallback
 ```
 
-**File counts:** 39 source files, 20 test files, 124 vitest tests + 2 Playwright tests = 126 total.
+**File counts:** 42 source files, 23 test files, 145 vitest tests + 2 Playwright tests = 147 total.
 
 ## Git & Version Control
 

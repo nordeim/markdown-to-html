@@ -9,6 +9,7 @@
     "lint": "eslint . --max-warnings 0",
     "lint:format": "prettier --check .",
     "lint:markdown": "markdownlint-cli2",
+    "lint:source": "node scripts/validate-source.mjs",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",

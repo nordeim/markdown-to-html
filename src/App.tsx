@@ -6,6 +6,7 @@ import { buildToc } from "@/lib/toc";
 import { parseDocument } from "@/lib/frontmatter";
 import { loadRegistry } from "@/lib/tags";
 import { estimateReadingTime } from "@/lib/reading-time";
+import { reduceActiveSlug } from "@/lib/active-section";
 import { TAGS, TemplateLayout } from "@/templates/active";
 import type { TocItem } from "@/types/toc";
 
@@ -57,20 +58,23 @@ export function App() {
     const flattened = flattenToc(toc);
     if (flattened.length === 0) return;
 
+    // Maintain a per-element visibility map so that partial IntersectionObserver
+    // callbacks (which only contain *changed* entries, not every observed
+    // element) don't cause the active section to incorrectly clear when a
+    // leaving section's entry is the only one in the callback. See
+    // src/lib/active-section.ts and tests/unit/active-section.test.ts.
+    const visible = new Map<string, boolean>();
+
     const observer = new IntersectionObserver(
       (entries) => {
-        // Track whether any entry is currently intersecting. If every observed
-        // entry reports not-intersecting, clear activeSlug so the TOC does not
-        // highlight a section the user has scrolled past (or has not yet
-        // reached). The "every not-intersecting" guard prevents thrash when
-        // multiple sections are partially visible.
-        if (entries.length > 0 && entries.every((e) => !e.isIntersecting)) {
-          setActiveSlug("");
-          return;
-        }
-        for (const entry of entries) {
-          if (entry.isIntersecting) setActiveSlug(entry.target.id);
-        }
+        const next = reduceActiveSlug(
+          visible,
+          entries.map((e) => ({
+            target: { id: e.target.id },
+            isIntersecting: e.isIntersecting,
+          })),
+        );
+        setActiveSlug(next);
       },
       { rootMargin: "-80px 0px -80% 0px" },
     );

@@ -1,15 +1,22 @@
 import { scanLines } from "@/lib/fence";
 
 /**
- * Reading-speed assumption: 200 words per minute (industry standard for
- * adult silent reading of English prose).
+ * Reading-speed assumptions.
  *
- * CJK characters are counted as individual words because they carry
- * significantly more semantic density per character than Latin words.
- * This matches the convention used by Medium, dev.to, and most static-site
- * reading-time estimators.
+ * Latin-script prose is read at roughly 200 words per minute (industry
+ * standard for adult silent reading of English). CJK characters are counted
+ * individually because each carries significantly more semantic density than
+ * a Latin word — but they are also read somewhat slower per character. Native
+ * Chinese reading speed is ~250-300 characters per minute for prose; we use
+ * 300 cpm as a reasonable middle ground.
+ *
+ * When content is mixed (Latin + CJK), we compute each estimate independently
+ * and take the max — so a 1000-word English document with a 100-character
+ * Chinese appendix reads as 5 min (Latin dominates), not 5.5 min (sum would
+ * double-count).
  */
-const WORDS_PER_MINUTE = 200;
+const LATIN_WORDS_PER_MINUTE = 200;
+const CJK_CHARS_PER_MINUTE = 300;
 
 /**
  * Rough estimate of reading time for a markdown document.
@@ -20,7 +27,8 @@ const WORDS_PER_MINUTE = 200;
  *   2. Strips markdown syntax (headers, bold, italic, links, lists).
  *   3. Counts Latin words (whitespace-separated tokens).
  *   4. Counts CJK characters individually (each one = 1 word).
- *   5. Divides by WORDS_PER_MINUTE, rounds up to the nearest minute.
+ *   5. Computes latinMinutes and cjkMinutes independently.
+ *   6. Takes max(1, latinMinutes, cjkMinutes), rounds up.
  *
  * The result is a string like "5 min read" suitable for display in the
  * layout's meta line.
@@ -77,11 +85,12 @@ export function estimateReadingTime(markdown: string): string {
   );
   const cjkCount = cjkChars ? cjkChars.length : 0;
 
-  const totalWords = latinCount + cjkCount;
-  if (totalWords === 0) {
+  if (latinCount === 0 && cjkCount === 0) {
     return "0 min read";
   }
 
-  const minutes = Math.max(1, Math.ceil(totalWords / WORDS_PER_MINUTE));
+  const latinMinutes = Math.ceil(latinCount / LATIN_WORDS_PER_MINUTE);
+  const cjkMinutes = Math.ceil(cjkCount / CJK_CHARS_PER_MINUTE);
+  const minutes = Math.max(1, latinMinutes, cjkMinutes);
   return `${minutes} min read`;
 }
